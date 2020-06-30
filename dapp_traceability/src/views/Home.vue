@@ -14,6 +14,18 @@
           <TokenBalance/>
           <CreateToken/>
         </b-card>
+        <b-card>
+          <Account/>
+          <br>
+          <TokenBalance/>
+          <CreateToken/>
+        </b-card>
+        <b-card>
+          <Account/>
+          <br>
+          <TokenBalance/>
+          <CreateToken/>
+        </b-card>
       </b-card-group>
       <Toast/>
     </b-jumbotron>
