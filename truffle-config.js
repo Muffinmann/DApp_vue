@@ -48,7 +48,7 @@ module.exports = {
      network_id: "*",       // Any network (default: none)
      accounts: 5,
      defaultEtherBalance: 100,
-     gas: 85000000
+     gas: 85000000，
      gasPrice: 10000000000
     },
 
