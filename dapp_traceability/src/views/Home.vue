@@ -9,22 +9,7 @@
       <Dashboard/>
       <b-card-group deck>
         <b-card>
-          <Account/>
-          <br>
-          <TokenBalance/>
-          <CreateToken/>
-        </b-card>
-        <b-card>
-          <Account/>
-          <br>
-          <TokenBalance/>
-          <CreateToken/>
-        </b-card>
-        <b-card>
-          <Account/>
-          <br>
-          <TokenBalance/>
-          <CreateToken/>
+          <Station/>
         </b-card>
       </b-card-group>
       <Toast/>
@@ -35,19 +20,15 @@
 
 <script>
 // @ is an alias to /src
-import Account from '@/components/Account.vue'
-import TokenBalance from '@/components/TokenBalance.vue'
 import Toast from '@/components/Toast.vue'
-import CreateToken from '@/components/CreateToken.vue'
 import Dashboard from '@/components/Dashboard.vue'
+import Station from '@/components/Station.vue'
 export default {
   name: 'Home',
   components: {
-    Account,
-    TokenBalance,
-    CreateToken,
     Toast,
-    Dashboard
+    Dashboard,
+    Station
   }
 }
 </script>

@@ -1,7 +1,7 @@
 <template>
   <b-container>
     <h5><b>Create Token</b></h5>
-    <b-form @submit="onSubmit" inline>
+    <b-form-group inline>
       <b-form-input
         v-model="args.quantity"
         type="number"
@@ -20,10 +20,11 @@
       />
       <b-form-select
         v-model="args.actor"
+        type="text"
         :options="actors"
       />
-      <b-button type="submit" size="sm" class="mx-2">Submit</b-button>
-    </b-form>
+      <b-button @click="onSubmit" size="sm" class="mx-2">Submit</b-button>
+    </b-form-group>
     <b-card class="mt-3" header="Selected Args Result">
       <pre class="m-0">{{ args }}</pre>
     </b-card>
@@ -42,13 +43,16 @@ export default {
   },
   methods: {
     onSubmit () {
+      console.log('actor--->', this.args.actor)
       this.drizzleInstance
         .contracts.APTSC
         .methods.create
-        .cacheSend(this.args.quantity, this.args.uri, this.args.serialNumber, this.args.actor, { gas: 100000 })
+        .cacheSend(this.args.quantity, this.args.uri, this.args.serialNumber, this.args.actor, { gas: 100000, from: this.args.actor })
     },
     fetchActors () {
-      this.actors = Object.keys(this.$store.state.accounts.accountBalances)
+      const actorlist = [{ text: 'Actor', value: null }]
+      actorlist.push(...Object.keys(this.$store.state.accounts.accountBalances))
+      this.actors = actorlist
     }
   },
   data () {

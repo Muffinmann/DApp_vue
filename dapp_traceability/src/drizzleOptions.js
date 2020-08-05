@@ -9,11 +9,12 @@ const options = {
   },
   contracts: [APTSC],
   events: {
-    APTSC: ['TransferSingle', 'controllerUpdate', 'serialNumber', 'status']
+    APTSC: ['TransferSingle', 'controllerUpdate', 'serialNumber', 'status', 'URI']
   },
   polls: {
     accounts: 15000
-  }
+  },
+  syncAlways: true
 }
 
 export default options

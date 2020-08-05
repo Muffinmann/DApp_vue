@@ -1,10 +1,13 @@
 <template>
-  <div>
-  <h5><b>Balance of Token</b></h5>
-  <p>{{ balanceOfToken }}</p>
-  <p>{{ getTokenBalance }}</p>
-  <p>Current Token Supply: {{ nonce }}</p>
-  </div>
+  <b-container>
+    <h5><b>Balance of Token</b></h5>
+    <b-row align-h="center">
+      <b-col>
+        <p>{{ balanceOfToken }}</p>
+        <p>Current Token Supply: {{ nonce }}</p>
+      </b-col>
+    </b-row>
+  </b-container>
 </template>
 <script>
 import { mapGetters } from 'vuex'
@@ -19,7 +22,6 @@ export default {
   name: 'TokenBalance',
   created () {
     const activeAccount = this.$store.state.accounts.activeAccount
-    console.log('AA----->', activeAccount)
     this.$store.dispatch('drizzle/REGISTER_CONTRACT', {
       contractName: args.contractName,
       method: args.method,

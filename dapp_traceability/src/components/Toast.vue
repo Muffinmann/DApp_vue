@@ -12,9 +12,6 @@ export default {
   mounted () {
     const contractEventHandler = ({ contractName, eventName, data }) => {
       if (eventName === 'TransferSingle') {
-        // console.log('contractName------>', contractName)
-        // console.log('eventName------>', eventName)
-        // console.log('data------>', data)
         const display = `${contractName}|${eventName}:(token:${data._id}|${data._value})---> ${data._to}`
         const subOptions = {
           duration: 5000,
