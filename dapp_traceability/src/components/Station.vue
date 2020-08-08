@@ -12,13 +12,7 @@
         <template v-slot:cell(index)="row">
           {{row.index + 1 }}
         </template>
-        <template v-slot:cell(assemblyUID)="row">
-          {{ row.value }}
-        </template>
-        <template v-slot:cell(batchsize)="row">
-          {{ row.value }}
-        </template>
-        <template v-slot:cell(tokenID)="row">
+        <template v-slot:cell()="row">
           {{ row.value }}
         </template>
       </b-table>
@@ -37,12 +31,12 @@ import TokenBalance from '@/components/eth_widgets/TokenBalance.vue'
 import { mapGetters } from 'vuex'
 export default {
   name: 'Station',
+  props: ['neo4jDriver'],
   components: {
     TokenBalance
   },
   data () {
     return {
-      neo4jDriver: null,
       assemblyFields: [
         'index',
         {
@@ -62,12 +56,8 @@ export default {
       actor: this.$store.state.accounts.activeAccount // TODO: using props to accept "actor" from father component
     }
   },
-  watch: {
-    neo4jDriver: 'initAssembly'
-  },
   created () {
-    const neoConnection = neo4j.driver('neo4j://localhost:7687', neo4j.auth.basic('neo4j', 'neo4jpassword'))
-    this.neo4jDriver = neoConnection
+    this.initAssembly()
   },
   mounted () {
     const tokenRegisterHandler = ({ contractName, eventName, data }) => {
@@ -130,18 +120,14 @@ export default {
       })
     },
     queryAssemblyToken (tx, assembly, index) {
-      // console.log('assembly', assembly)
       const result = tx.run('MATCH (a:AssemblyUID{assemblyUID: $UID})<-[:HAS_WUID]-(t:Token) return t', { UID: assembly.assemblyUID })
-      // const re = /W\d{4}C\d/
-      // const assemblyID = assembly.assemblyUID.match(re)[0]
       result.subscribe({
         onNext: record => {
-          // console.log('record:', record)
           const tokenInstance = record.get('t').properties
-          console.group('TOKEN FOUND: ')
-          console.log(assembly.assemblyUID, ' has token: ')
-          console.log(tokenInstance)
-          console.groupEnd()
+          // console.group('TOKEN FOUND: ')
+          // console.log(assembly.assemblyUID, ' has token: ')
+          // console.log(tokenInstance)
+          // console.groupEnd()
           this.assemblyItems[index].tokenID = tokenInstance.tokenID
         }
       })
@@ -176,11 +162,6 @@ export default {
       const serialNumber = assemblyUID
       const re = /W\d{4}/ // assemblyID has the form of 'W0123'
       const assemblyID = assemblyUID.match(re)[0]
-      console.group('ASSEMBLY INFO')
-      console.log('assemblyID: ', assemblyID)
-      console.log('serialNumber: ', serialNumber)
-      console.log('tokenID: ', tokenID)
-      console.groupEnd()
       return tx.run(
         'MATCH (a:Assembly {assemblyID: $assemblyID})' +
         'MATCH (b:AssemblyUID {assemblyUID: $serialNumber})' +
