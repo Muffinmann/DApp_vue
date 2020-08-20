@@ -7,7 +7,7 @@ contract APTSC is ERC1155 {
     event serialNumber(string _serialNumber, uint256 indexed _id, address indexed _actor);
     event status(string _status, uint256 indexed _id, address indexed _actor);
     event controllerUpdate(string _type, address indexed _updatedAddress, uint256 indexed _id);
-
+    // string --> bytes32
     bytes4 constant private INTERFACE_SIGNATURE_URI = 0x0e89341c;
 
     // id => account => is controller
