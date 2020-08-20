@@ -1,13 +1,7 @@
 <template>
-  <b-container>
-    <h5><b>Balance of Token</b></h5>
-    <b-row align-h="center">
-      <b-col>
-        <p>{{ balanceOfToken }}</p>
-        <p>Current Token Supply: {{ nonce }}</p>
-      </b-col>
-    </b-row>
-  </b-container>
+  <b-row class="mx-3">
+      <p>Current Token Supply: {{ nonce }}</p>
+  </b-row>
 </template>
 <script>
 import { mapGetters } from 'vuex'

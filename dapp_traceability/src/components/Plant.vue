@@ -1,25 +1,27 @@
 <template>
   <b-container>
-    <Order
-      :neo4jDriver="neo4jDriver"
-    />
-    <Station
-      :neo4jDriver="neo4jDriver"
-    />
-    <div>
-      {{ orderList }}
-    </div>
+    <Order/>
+    <b-row>
+      <StationFirst :actor="actors[0]"/>
+      <StationSecond :actor="actors[1]"/>
+      <StationThird :actor="actors[2]"/>
+    </b-row>
   </b-container>
 </template>
 <script>
+import { mapGetters } from 'vuex'
 import neo4j from 'neo4j-driver'
 import Order from '@/components/Order.vue'
-import Station from '@/components/Station.vue'
+import StationFirst from '@/components/StationFirst.vue'
+import StationSecond from '@/components/StationSecond.vue'
+import StationThird from '@/components/StationThird.vue'
 export default {
   name: 'Plant',
   components: {
     Order,
-    Station
+    StationFirst,
+    StationSecond,
+    StationThird
   },
   data () {
     return {
@@ -30,6 +32,13 @@ export default {
   created () {
     const connection = neo4j.driver('neo4j://localhost:7687', neo4j.auth.basic('neo4j', 'neo4jpassword'))
     this.neo4jDriver = connection
+  },
+  computed: {
+    ...mapGetters('drizzle', ['drizzleInstance']),
+    actors () {
+      const state = this.drizzleInstance.store.getState()
+      return state.accounts
+    }
   }
 }
 </script>

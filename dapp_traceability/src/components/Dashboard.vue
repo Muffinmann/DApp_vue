@@ -16,7 +16,13 @@ export default {
   computed: {
     ...mapGetters('drizzle', ['drizzleInstance']),
     accountBalances () {
-      return this.$store.state.accounts.accountBalances
+      const accountBalances = {}
+      const allBalances = this.$store.state.accounts.accountBalances
+      const keys = Object.keys(allBalances).slice(0, -1)
+      keys.forEach(key => {
+        accountBalances[key] = allBalances[key]
+      })
+      return accountBalances
     }
   },
   methods: {
@@ -24,14 +30,11 @@ export default {
       return this.drizzleInstance.web3.utils.fromWei(balance, 'ether')
     },
     addressToMachineName (address) {
-      // typeof address := string
-      // TODO: add map tables to store
       const mapTable = {
-        '0x9d56414F2218e4F33d474ad29A643DF9adB01F73': 'CrimpCenter36S_1',
-        '0x76471f9b4A5cbbaC6CE3Cd504ad2aFB702094f80': 'Alpha488S_1',
-        '0x00E97eF3Ce4B250421C593C4Cd064E69Fb6eEAC2': 'Omega740_1',
-        '0xF5b013C3f7F7f6db154bF9a0E7a24F0e25be2548': 'ModuleBoard_1',
-        '0x6470d5dB2bd750318b012d77585120a7f7F2B75D': 'Formboard5200_1'
+        '0x9d56414F2218e4F33d474ad29A643DF9adB01F73': 'P1',
+        '0x76471f9b4A5cbbaC6CE3Cd504ad2aFB702094f80': 'P2',
+        '0x00E97eF3Ce4B250421C593C4Cd064E69Fb6eEAC2': 'P3',
+        '0xF5b013C3f7F7f6db154bF9a0E7a24F0e25be2548': 'MES'
       }
       return mapTable[address]
     }
