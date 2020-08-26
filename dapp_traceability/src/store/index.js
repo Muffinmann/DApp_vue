@@ -35,10 +35,11 @@ export default new Vuex.Store({
     updateProductActor (state, { pmID, station }) {
       state.productStation[pmID] = station
     },
-    updateAssemblyTokenMap (state, { aUID, tokenID }) {
-      state.assemblyTokenMap[aUID] = tokenID
+    updateAssemblyTokenMap (state, { aUID, token }) {
+      state.assemblyTokenMap[aUID] = { tokenID: token.tokenID, tokenSupply: token.tokenSupply }
     },
     updateProductTokenMap (state, { pmID, tokens }) {
+      console.log('UPDATE', pmID, tokens)
       state.productTokenMap[pmID] = tokens
     },
     updateTokenSupplyMap (state, { tokenID, tokenSupply }) {

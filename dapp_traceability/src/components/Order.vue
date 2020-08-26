@@ -1,6 +1,6 @@
 <template>
   <b-container>
-    <b-table
+    <!-- <b-table
       ref="OrderList"
       show empty small
       selectable
@@ -10,21 +10,24 @@
       :fields="fields"
       :items="orders"
     >
-    </b-table>
+    </b-table> -->
+    <b-form-select v-model="selectOrder" :options="orders"></b-form-select>
+    <div>Selected: {{ selectOrder }}</div>
   </b-container>
 </template>
 <script>
 export default {
   data () {
     return {
-      fields: [
-        {
-          key: 'order',
-          sortable: true,
-          sortDirection: 'asc'
-        }
-      ],
-      orders: []
+      // fields: [
+      //   {
+      //     key: 'name',
+      //     sortable: true,
+      //     sortDirection: 'asc'
+      //   }
+      // ],
+      orders: [{ value: null, text: 'Please select an order', disabled: true }],
+      selectOrder: null
     }
   },
   created () {
@@ -33,16 +36,23 @@ export default {
       .readTransaction(this.retrieveOrder)
       .then(() => session.close())
   },
+  watch: {
+    selectOrder: 'onRowSelected'
+  },
   methods: {
-    onRowSelected (o) {
-      this.$store.commit('selectOrder', o[0].order)
+    onRowSelected () {
+      // this.selectOrder = o[0].order
+      this.$store.commit('selectOrder', this.selectOrder)
     },
+    /**
+    * Neo4j functions *
+    */
     retrieveOrder (tx) {
       const result = tx.run('MATCH (o:Order) return o')
       result.subscribe({
         onNext: record => {
           const order = record.get('o').properties
-          this.orders.push({ order: order.orderID })
+          this.orders.push({ value: order.orderID, text: order.orderID, order: order.orderID })
         }
       })
     }

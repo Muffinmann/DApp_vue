@@ -3,8 +3,8 @@
     <Order/>
     <b-row>
       <StationFirst :actor="actors[0]"/>
-      <StationSecond :actor="actors[1]"/>
-      <StationThird :actor="actors[2]"/>
+      <Station :actor="actors[1]" area="p2"/>
+      <Station :actor="actors[2]" area="p3"/>
     </b-row>
   </b-container>
 </template>
@@ -13,15 +13,14 @@ import { mapGetters } from 'vuex'
 import neo4j from 'neo4j-driver'
 import Order from '@/components/Order.vue'
 import StationFirst from '@/components/StationFirst.vue'
-import StationSecond from '@/components/StationSecond.vue'
-import StationThird from '@/components/StationThird.vue'
+import Station from '@/components/Station.vue'
+
 export default {
   name: 'Plant',
   components: {
     Order,
     StationFirst,
-    StationSecond,
-    StationThird
+    Station
   },
   data () {
     return {
