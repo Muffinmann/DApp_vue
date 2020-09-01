@@ -20,7 +20,8 @@
           sticky-header="500px"
           :fields="assemblyFields"
           :items="assemblyItems"
-          :filter="filter"
+          :filter="childrenFilter"
+          :filter-function="multipleItemFilter"
           :busy="isBusy"
           >
           <template v-slot:table-busy>
@@ -33,7 +34,7 @@
             {{ row.value }}
           </template>
           <template v-slot:cell(assemblyID)="row">
-            {{ row.value }} <b-icon icon="arrows-expand" @click="row.toggleDetails"></b-icon>
+            <p v-b-tooltip :title="actor">{{ row.value }} <b-icon icon="arrows-expand" @click="row.toggleDetails"></b-icon></p>
           </template>
           <template v-slot:row-details="row">
             <b-card>
@@ -45,9 +46,10 @@
         </b-table>
 
         <b-button class="mx-3" @click="mintToken"> Mint Token </b-button>
+        <b-button class="mx-3" @click="detachToken">Detach Token</b-button>
         <b-button class="mx-3" @click="detachAllTokens">Detach All Tokens</b-button>
         <b-button class="mx-3" @click="transferToken">Transfer Token</b-button>
-
+        <b-button class="mx-3" @click="approveControl">Approve Control</b-button>
         <TokenBalance/>
 
     </b-container>
@@ -99,7 +101,7 @@ export default {
       //     const serialNumber = data._serialNumber
       //     session
       //       .writeTransaction(tx => this.attachTokenToAssembly(tx, tokenID, tokenSupply, serialNumber))
-      //       .then(() => this.updateTokenInfo())
+      //       .then(() => this.updateAssemblyToken())
       //       .then(() => session.close())
       //     break
       //   case 'controllerUpdate':
@@ -110,15 +112,22 @@ export default {
       //     console.groupEnd()
       //     break
       // }
-      if (eventName === 'TransferSingle') {
+      if (eventName === 'TransferSingle' && data._operator === this.actor) {
+        console.group('>>> P1 TransferSingle <<<')
+        console.log(data)
+        console.groupEnd()
         const tokenID = data._id
-        const tokenSupply = data._value
+        const tokenSupply = parseInt(data._value)
+        console.log('type of supply:', typeof tokenSupply)
         this.tokenSupplyMap[tokenID] = tokenSupply
-      } else if (eventName === 'serialNumber') {
+      } else if (eventName === 'serialNumber' && data._actor === this.actor) {
+        console.group('>>> P1 serial number <<<')
+        console.log('data: ', data)
+        console.groupEnd()
         const tokenID = data._id
         const tokenSupply = this.tokenSupplyMap[tokenID]
         const serialNumber = data._serialNumber
-        const timeStamp = new Date().toUTCString() // GMT time: locally in GMT +02:00 and it's 07:50, the time stamp is then 05:50
+        const timeStamp = this.createTimeStamp() // GMT time: when locally in GMT +02:00 and it's 07:50, the time stamp is then 05:50
         this.attatchToken.push({
           serialNumber: serialNumber,
           tokenID: tokenID,
@@ -126,20 +135,33 @@ export default {
           timeStamp: timeStamp
         })
         if (serialNumber === this.mintPool.slice(-1)[0].assemblyUID) { // update neo4j database after the last token is created
-          this.updateTokenInfo()
+          this.updateAssemblyToken()
         }
+      } else if (eventName === 'ApprovalForAll') {
+        console.log('APPROVAL FOR ALL:', data)
+      } else if (eventName === 'TransferBatch') {
+        console.log('transferBatch: ', data)
+        // this.updateTokenSupply(data._ids, data._values)
       }
     }
     this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
   },
   computed: {
     ...mapGetters('drizzle', ['drizzleInstance']),
+    ...mapGetters('contracts', ['getContractData', 'contractInstances']),
     currentOrder () {
       return this.$store.state.selectedOrder
+    },
+    childrenFilter () {
+      return this.$store.getters.getChildrenFilter.length ? this.$store.getters.getChildrenFilter : this.filter
+    },
+    autoRefresh () {
+      return this.$store.state.autoRefresh
     }
   },
   watch: {
-    currentOrder: 'initAssembly'
+    currentOrder: 'initAssembly',
+    autoRefresh: 'initAssembly'
   },
   methods: {
     initAssembly () {
@@ -151,40 +173,53 @@ export default {
         .then(() => session.close())
         .then(() => this.toggleBusy('end'))
     },
-    updateTokenInfo () {
-      const session1 = this.$store.state.neo4jDriver.session()
-      session1
-        .run('UNWIND $items as item ' +
-          'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
-          'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a)', { items: this.attatchToken })
-        .then(() => this.initAssembly())
-        .then(() => session1.close())
-      // const session2 = this.$store.state.neo4jDriver.session()
-      // session2
-      //   .run('UNWIND $items as item ' +
-      //     'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
-      //     'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a)', { items: this.attatchToken.slice(this.attatchToken.length / 2) })
-      //   .then(() => this.initAssembly())
-      //   .then(() => session2.close())
-    },
     mintToken () {
-      this.mintPool = this.assemblyItems.filter(row => row.tokenID === null)
+      if (this.childrenFilter) {
+        const filters = this.childrenFilter
+        const mintPool = this.assemblyItems.filter(row => this.multipleItemFilter(row, filters))
+        this.mintPool = mintPool.filter(row => row.tokenID === null)
+      } else {
+        this.mintPool = this.assemblyItems.filter(row => row.tokenID === null)
+      }
       this.mintPool.forEach(el => this.createToken(el.batchsize, el.assemblyUID))
     },
-    transferToken () {
-      this.assemblyItems.forEach((el, index) => {
-        if (el.tokenID) {
-          const newController = this.findController(el.pmID)
-          this.transferControl(el.tokenID, newController)
-        }
+    transferToken () { // TODO: clear request pool after approve
+      const p2Request = this.$store.getters.getRequestPool('p2')
+      // const p3Request = this.$store.getters.getRequestPool('p3')
+      const p2Actor = Object.keys(p2Request)
+      // const p3Actor = Object.keys(p3Request)
+      const p2Tokens = Object.values(p2Request)
+      // const p3Tokens = Object.values(p3Request)
+      p2Tokens.forEach((tokens, index) => {
+        tokens.forEach(token => {
+          this.addController(token, p2Actor[index])
+        })
+        const p2Qtys = Array.from({ length: tokens.length }, x => 1)
+        console.group('TRANSFER TOKEN')
+        console.log('p2 actor: ', p2Actor[index])
+        console.log('p2 tokens: ', tokens)
+        console.log('p2 quantity: ', p2Qtys)
+        console.groupEnd()
+        this.transferBatch(this.actor, p2Actor[index], tokens, p2Qtys)
       })
+      // p3Tokens.forEach((tokens, index) => {
+      //   tokens.forEach(token => {
+      //     this.addController(token, p3Actor[index])
+      //   })
+      //   const p3Qtys = Array.from({ length: tokens.length }, x => 1)
+      //   this.transferBatch(this.actor, p3Actor[index], tokens, p3Qtys)
+      // })
+      this.$store.commit('clearRequestPool')
+    },
+    approveControl () {
+      this.setApproval('0x76471f9b4A5cbbaC6CE3Cd504ad2aFB702094f80')
+      this.checkApproval(this.actor, '0x76471f9b4A5cbbaC6CE3Cd504ad2aFB702094f80')
     },
     /**
     * NEO4J FUNCTIONS
     */
     getAssembly (tx) {
       const result = tx.run(
-        // TODO: DISTINCT aid
         'MATCH(o:Order{orderID:$orderID})-[:CO_MAPPING_ORDER]-()-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid)' +
         'WITH DISTINCT aid, auid OPTIONAL MATCH (auid)-[:HAS_WUID]-(t:Token)' +
         'RETURN t,auid,aid', { orderID: this.currentOrder })
@@ -201,50 +236,55 @@ export default {
         this.assemblyItems = assemblyItems
       })
     },
-    // getAssemblyToken (tx, assembly, index) {
-    //   const result = tx.run('MATCH (a:AssemblyUID{assemblyUID: $UID})<-[:HAS_WUID]-(t:Token) return t', { UID: assembly.assemblyUID })
-    //   result.subscribe({
-    //     onNext: record => {
-    //       // console.log('RECORD: ', record)
-    //       const token = record.get('t').properties
-    //       // console.group('TOKEN FOUND: ')
-    //       // console.log(assembly.assemblyUID, ' has token: ')
-    //       // console.log(token)
-    //       // console.groupEnd()
-    //       const tokenID = token.tokenID
-    //       const tokenSupply = token.tokenSupply
-    //       const aUID = this.assemblyItems[index].assemblyUID
-    //       this.assemblyItems[index].tokenID = tokenID
-    //       this.assemblyItems[index].tokenSupply = tokenSupply
-    //       this.tokenIndexMap[tokenID] = index
-    //       this.$store.commit('updateAssemblyTokenMap', { aUID: aUID, tokenID: tokenID })
-    //       this.$store.commit('updateTokenSupplyMap', { tokenID: tokenID, tokenSupply: tokenSupply })
-    //     }
-    //   })
+    updateAssemblyToken () {
+      const session = this.$store.state.neo4jDriver.session()
+      session
+        .run('UNWIND $items as item ' +
+          'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
+          'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a)', { items: this.attatchToken })
+        .then(() => this.initAssembly())
+        .then(() => session.close())
+    },
+    // updateTokenSupply (_ids, _values) { // TODO: apply funtion in Station Component
+    //   const tokenSupplyChange = _ids.map((id, index) => ({ tokenID: id, value: values[index]}))
+    //   const tokenTransferTo = _ids.map(id => this.$store.getters.getTokenInProduct(id, area))
+    //   const session = this.$store.state.neo4jDriver.session()
+    //   session.
+    //     run('UNWIND $changes as change' +
+    //       'MATCH (t:Token{tokenID: change.tokenID})')
     // },
+    detachToken () {
+      const session = this.$store.state.neo4jDriver.session()
+      const assemblyUID = this.assemblyItems[0].assemblyUID
+      session
+        .run(
+          'MATCH (a:AssemblyUID{assemblyUID:$assemblyUID})-[:HAS_WUID]-(b:Token)' +
+          'DETACH DELETE b', { assemblyUID: assemblyUID })
+        .then(() => session.readTransaction(this.getAssembly))
+        .then(() => session.close())
+    },
     detachAllTokens () {
       const session = this.$store.state.neo4jDriver.session()
       session
         .run(
-          'MATCH (a:AssemblyUID)-[:HAS_WUID]-(b:Token)' +
-          'DETACH DELETE b')
+          'MATCH (t:Token)' +
+          'DETACH DELETE t')
         .then(() => session.readTransaction(this.getAssembly))
         .then(() => session.close())
     },
-    attachTokenToAssembly (tx, tokenID, tokenSupply, serialNumber, timeStamp) {
-      // TODO: property of [:HAS_TOKEN]
-      // console.log('TIME------>', new Date().toUTCString())
-      return tx.run(
-        'MATCH (a:AssemblyUID {assemblyUID: $serialNumber})-[:IS_C_UID]-(b:Assembly)' +
-        'MERGE (b)-[:HAS_TOKEN{timeStamp:$timeStamp}]->(t:Token {tokenID: $tokenID, tokenSupply:$tokenSupply})-[:HAS_WUID{timeStamp:$timeStamp}]->(a)',
-        {
-          serialNumber: serialNumber,
-          tokenID: tokenID,
-          tokenSupply: tokenSupply,
-          timeStamp: timeStamp
-        }
-      )
-    },
+    // attachTokenToAssembly (tx, tokenID, tokenSupply, serialNumber, timeStamp) {
+    //   // console.log('TIME------>', new Date().toUTCString())
+    //   return tx.run(
+    //     'MATCH (a:AssemblyUID {assemblyUID: $serialNumber})-[:IS_C_UID]-(b:Assembly)' +
+    //     'MERGE (b)-[:HAS_TOKEN{timeStamp:$timeStamp}]->(t:Token {tokenID: $tokenID, tokenSupply:$tokenSupply})-[:HAS_WUID{timeStamp:$timeStamp}]->(a)',
+    //     {
+    //       serialNumber: serialNumber,
+    //       tokenID: tokenID,
+    //       tokenSupply: tokenSupply,
+    //       timeStamp: timeStamp
+    //     }
+    //   )
+    // },
     /**
     * BLOCKCHAIN FUNCTIONS
     */
@@ -254,11 +294,43 @@ export default {
         .methods.create
         .cacheSend(qty, 'uri/path', serialNumber, this.actor, { gas: 100000, from: this.actor })
     },
-    transferControl (id, newController) {
+    addController (id, newController) {
       this.drizzleInstance
         .contracts.APTSC
-        .methods.transferControl
-        .cacheSend(id, newController)
+        .methods.addController
+        .cacheSend(id, newController, { gas: 100000, from: this.actor })
+    },
+    checkApproval (owner, operator) {
+      const state = this.drizzleInstance.store.getState()
+      // console.log('STATE: ', state)
+      const dataKey = this.drizzleInstance
+        .contracts.APTSC
+        .methods.isApprovedForAll
+        .cacheCall(owner, operator)
+      // console.log('DATA KEY: ', dataKey)
+      // console.log('CONTRACT INSTANCE: ', this.contractInstances.APTSC.isApprovedForAll[dataKey].value)
+      // const value = this.$store.state.contracts.instances.APTSC.isApprovedForAll[dataKey]
+      const value = state.contracts.APTSC.isApprovedForAll[dataKey].value
+      // console.log('VALUE: ', value)
+      // const result = JSON.parse(JSON.stringify(value))
+      // console.log('RESULT: ', result)
+      return value
+    },
+    setApproval (operator) {
+      this.drizzleInstance
+        .contracts.APTSC
+        .methods.setApprovalForAll
+        .cacheSend(operator, true)
+    },
+    transferBatch (from, to, ids, values) {
+      // function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)
+      const web3 = this.drizzleInstance.web3
+      const data = web3.utils.sha3('safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)')
+      const dataBytes = web3.utils.hexToBytes(data)
+      this.drizzleInstance
+        .contracts.APTSC
+        .methods.safeBatchTransferFrom
+        .cacheSend(from, to, ids, values, dataBytes, { gas: 1000000, from: this.actor })
     },
     /**
     * HELPER FUNCTIONS
@@ -273,8 +345,17 @@ export default {
           break
       }
     },
-    findController (pmID) {
-      return this.$store.getters.getProductActor(pmID)
+    multipleItemFilter (row, filter) {
+      const filters = filter.toLowerCase().split(',').map(el => el.trim())
+      return Object.keys(row).some(function (key) {
+        return filters.some(function (filter) {
+          return (
+            String(row[key])
+              .toLowerCase()
+              .indexOf(filter) > -1
+          )
+        })
+      })
     },
     detailFilter (item) {
       return {
@@ -283,6 +364,10 @@ export default {
         BatchSplit: item.batchsplit,
         MaterialType: item.materialtype
       }
+    },
+    createTimeStamp () {
+      const date = new Date().toJSON() // e.x: "2020-09-01T13:17:29.468Z"
+      return date.slice(0, date.indexOf('.'))
     }
   }
 }

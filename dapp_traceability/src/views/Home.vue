@@ -5,7 +5,7 @@
       <template v-slot:header>APTSC</template>
       <template v-slot:lead>solutions for traceability problem with Ethereum</template>
       <hr class="my-5">
-      <Dashboard/>
+      <Dashboard/> <hr class="my-5" />
       <Plant/>
       <Toast/>
     </b-jumbotron>

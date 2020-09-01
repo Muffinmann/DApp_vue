@@ -9,41 +9,52 @@ export default new Vuex.Store({
   state: {
     neo4jDriver: connection,
     selectedOrder: null,
-    productStation: {},
+    requestPool: {},
     assemblyTokenMap: {},
-    productTokenMap: {},
-    tokenSupplyMap: {}
+    tokenProductMap: { p2: {}, p3: {} },
+    tokenSupplyMap: {},
+    childrenFilter: [],
+    autoRefresh: false
   },
   getters: {
-    getProductActor: (state) => (pmID) => {
-      return state.productStation[pmID]
+    getRequestPool: (state) => (area) => {
+      return state.requestPool[area]
     },
     getAssemblyToken: (state) => (aUID) => {
       return state.assemblyTokenMap[aUID]
     },
-    getProductTokens: (state) => (pmID) => {
-      return state.productTokenMap[pmID]
+    getTokenUsedInPM: (state) => (tokenID, area) => {
+      return state.tokenProductMap[area][tokenID]
     },
     getTokenSupply: (state) => (tokenID) => {
       return state.tokenSupplyMap[tokenID]
-    }
+    },
+    getChildrenFilter: (state) => state.childrenFilter
   },
   mutations: {
     selectOrder (state, payload) {
       state.selectedOrder = payload
     },
-    updateProductActor (state, { pmID, station }) {
-      state.productStation[pmID] = station
+    requestToken (state, { tokens, newActor, area }) {
+      state.requestPool[area] = { [newActor]: tokens }
+    },
+    clearRequestPool (state) {
+      state.requestPool = {}
     },
     updateAssemblyTokenMap (state, { aUID, token }) {
       state.assemblyTokenMap[aUID] = { tokenID: token.tokenID, tokenSupply: token.tokenSupply }
     },
-    updateProductTokenMap (state, { pmID, tokens }) {
-      console.log('UPDATE', pmID, tokens)
-      state.productTokenMap[pmID] = tokens
+    updateTokenProductMap (state, { tokenID, pmID, area }) {
+      state.tokenProductMap[area][tokenID] = pmID
     },
     updateTokenSupplyMap (state, { tokenID, tokenSupply }) {
       state.tokenSupplyMap[tokenID] = tokenSupply
+    },
+    updateChildrenFilter (state, children) {
+      state.childrenFilter = children
+    },
+    autoRefresh (state) {
+      state.autoRefresh = !state.autoRefresh
     }
   },
   actions: {

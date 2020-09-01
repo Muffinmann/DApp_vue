@@ -4,6 +4,8 @@
     <b-row>
       <StationFirst :actor="actors[0]"/>
       <Station :actor="actors[1]" area="p2"/>
+    </b-row>
+    <b-row>
       <Station :actor="actors[2]" area="p3"/>
     </b-row>
   </b-container>

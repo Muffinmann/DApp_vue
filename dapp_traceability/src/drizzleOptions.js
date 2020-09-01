@@ -9,7 +9,7 @@ const options = {
   },
   contracts: [APTSC],
   events: {
-    APTSC: ['TransferSingle', 'controllerUpdate', 'serialNumber', 'status', 'URI']
+    APTSC: ['TransferSingle', 'TransferBatch', 'controllerUpdate', 'serialNumber', 'status', 'URI', 'ApprovalForAll']
   },
   polls: {
     accounts: 15000

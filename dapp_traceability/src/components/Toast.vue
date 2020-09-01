@@ -25,6 +25,9 @@ export default {
   mounted () {
     const contractEventHandler = ({ contractName, eventName, data }) => {
       if (eventName === 'TransferSingle') {
+        console.group('Toast Eventhandler')
+        console.log('token supply map: ', this.tokenSupplyMap)
+        console.groupEnd()
         this.toastMsg = `${contractName}|${eventName}:(token:${data._id}|${data._value})---> ${data._to}`
         // const subOptions = {
         //   toaster: 'b-toaster-top-right',
@@ -32,6 +35,9 @@ export default {
         //   autoHideDelay: 1500
         // }
         // this.$bvToast.toast(display, subOptions)
+        this.$bvToast.show('create')
+      } else if (eventName === 'TransferBatch') {
+        this.toastMsg = `${eventName}:(token:${data._ids})---> ${data._to}`
         this.$bvToast.show('create')
       }
     }
