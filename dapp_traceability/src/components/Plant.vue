@@ -1,5 +1,7 @@
 <template>
   <b-container>
+    <Dashboard/>
+    <hr class="my-5" />
     <Order/>
     <b-row>
       <StationFirst :actor="actors[0]"/>
@@ -12,7 +14,7 @@
 </template>
 <script>
 import { mapGetters } from 'vuex'
-import neo4j from 'neo4j-driver'
+import Dashboard from '@/components/Dashboard.vue'
 import Order from '@/components/Order.vue'
 import StationFirst from '@/components/StationFirst.vue'
 import Station from '@/components/Station.vue'
@@ -20,6 +22,7 @@ import Station from '@/components/Station.vue'
 export default {
   name: 'Plant',
   components: {
+    Dashboard,
     Order,
     StationFirst,
     Station
@@ -29,10 +32,6 @@ export default {
       neo4jDriver: null,
       orderList: null
     }
-  },
-  created () {
-    const connection = neo4j.driver('neo4j://localhost:7687', neo4j.auth.basic('neo4j', 'neo4jpassword'))
-    this.neo4jDriver = connection
   },
   computed: {
     ...mapGetters('drizzle', ['drizzleInstance']),

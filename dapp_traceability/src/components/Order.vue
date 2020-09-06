@@ -16,6 +16,7 @@
   </b-container>
 </template>
 <script>
+import neo from '@/neo4jAPI.js'
 export default {
   data () {
     return {
@@ -31,10 +32,12 @@ export default {
     }
   },
   created () {
-    const session = this.$store.state.neo4jDriver.session()
-    session
-      .readTransaction(this.retrieveOrder)
-      .then(() => session.close())
+    this.retrieveOrder()
+    // this.getOrder()
+    // const session = driver.session()
+    // session
+    //   .readTransaction(this.retrieveOrder)
+    //   .then(() => session.close())
   },
   watch: {
     selectOrder: 'onRowSelected'
@@ -47,15 +50,23 @@ export default {
     /**
     * Neo4j functions *
     */
-    retrieveOrder (tx) {
-      const result = tx.run('MATCH (o:Order) return o')
-      result.subscribe({
-        onNext: record => {
-          const order = record.get('o').properties
-          this.orders.push({ value: order.orderID, text: order.orderID, order: order.orderID })
-        }
-      })
+    async retrieveOrder () {
+      // const result = tx.run('MATCH (o:Order) return o')
+      const orders = await neo.getAllOrders()
+      this.orders = [...orders, ...this.orders]
+      // return result
+      // result.subscribe({
+      //   onNext: record => {
+      //     const order = record.get('o').properties
+      //     this.orders.push({ value: order.orderID, text: order.orderID, order: order.orderID })
+      //   }
+      // })
     }
+    // getOrder () {
+    //   getAllOrdersPromise().then((orders) => {
+    //     this.orders = [...orders, ...this.orders]
+    //   })
+    // }
   }
 }
 </script>

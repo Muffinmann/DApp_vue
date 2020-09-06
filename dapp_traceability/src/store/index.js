@@ -14,7 +14,8 @@ export default new Vuex.Store({
     tokenProductMap: { p2: {}, p3: {} },
     tokenSupplyMap: {},
     childrenFilter: [],
-    autoRefresh: false
+    autoRefresh: false,
+    refreshRequest: false
   },
   getters: {
     getRequestPool: (state) => (area) => {
@@ -36,13 +37,19 @@ export default new Vuex.Store({
       state.selectedOrder = payload
     },
     requestToken (state, { tokens, newActor, area }) {
+      console.group('<<<REQUEST TOKEN>>>')
+      console.log('area: ', area)
+      console.log('actor: ', newActor)
+      console.log('tokens: ', tokens)
+      console.groupEnd()
       state.requestPool[area] = { [newActor]: tokens }
     },
     clearRequestPool (state) {
+      // console.log('Clearing Request Pool......')
       state.requestPool = {}
     },
-    updateAssemblyTokenMap (state, { aUID, token }) {
-      state.assemblyTokenMap[aUID] = { tokenID: token.tokenID, tokenSupply: token.tokenSupply }
+    updateAssemblyTokenMap (state, { aUID, tokenID, tokenSupply }) {
+      state.assemblyTokenMap[aUID] = { tokenID: tokenID, tokenSupply: tokenSupply }
     },
     updateTokenProductMap (state, { tokenID, pmID, area }) {
       state.tokenProductMap[area][tokenID] = pmID
@@ -55,6 +62,9 @@ export default new Vuex.Store({
     },
     autoRefresh (state) {
       state.autoRefresh = !state.autoRefresh
+    },
+    refreshRequest (state) {
+      state.refreshRequest = !state.refreshRequest
     }
   },
   actions: {

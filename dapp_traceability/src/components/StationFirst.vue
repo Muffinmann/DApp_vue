@@ -3,6 +3,7 @@
     <b-container>
         <h2 v-b-tooltip :title="actor"><b>P1 Area</b></h2>
         <p>Current Order: {{currentOrder}} | Product: {{ currentOrder ? 'wh' + currentOrder.slice(1): null }}</p>
+
         <b-input-group size="sm">
             <b-form-input
               v-model="filter"
@@ -14,6 +15,7 @@
               <b-button :disabled="!filter" @click="filter=''">Clear</b-button>
             </b-input-group-append>
         </b-input-group>
+
         <b-table
           ref="AssemblyPool"
           show-empty small
@@ -50,22 +52,17 @@
         <b-button class="mx-3" @click="detachAllTokens">Detach All Tokens</b-button>
         <b-button class="mx-3" @click="transferToken">Transfer Token</b-button>
         <b-button class="mx-3" @click="approveControl">Approve Control</b-button>
-        <TokenBalance/>
 
     </b-container>
   </b-col>
 </template>
 
 <script>
-// import neo4j from 'neo4j-driver'
-import TokenBalance from '@/components/eth_widgets/TokenBalance.vue'
+import neo from '@/neo4jAPI.js'
 import { mapGetters } from 'vuex'
 export default {
   name: 'Station',
   props: ['actor'],
-  components: {
-    TokenBalance
-  },
   data () {
     return {
       isBusy: false,
@@ -88,30 +85,6 @@ export default {
   },
   mounted () {
     const eventHandler = ({ contractName, eventName, data }) => {
-      // const session = this.$store.state.neo4jDriver.session({ defaultAccessMode: neo4j.WRITE })
-      // switch (eventName) {
-      //   case 'TransferSingle':
-      //     const tokenID = data._id
-      //     const tokenSupply = data._value
-      //     this.tokenSupplyMap[tokenID] = tokenSupply
-      //     break
-      //   case 'serialNumber':
-      //     const tokenID = data._id
-      //     const tokenSupply = this.tokenSupplyMap[data._id]
-      //     const serialNumber = data._serialNumber
-      //     session
-      //       .writeTransaction(tx => this.attachTokenToAssembly(tx, tokenID, tokenSupply, serialNumber))
-      //       .then(() => this.updateAssemblyToken())
-      //       .then(() => session.close())
-      //     break
-      //   case 'controllerUpdate':
-      //     if (data._type === 'removed') {
-      //     }
-      //     console.group('ControllerUpdate')
-      //     console.log('control update data:', data)
-      //     console.groupEnd()
-      //     break
-      // }
       if (eventName === 'TransferSingle' && data._operator === this.actor) {
         console.group('>>> P1 TransferSingle <<<')
         console.log(data)
@@ -160,18 +133,18 @@ export default {
     }
   },
   watch: {
-    currentOrder: 'initAssembly',
+    currentOrder: 'getAssembly',
     autoRefresh: 'initAssembly'
   },
   methods: {
     initAssembly () {
-      this.toggleBusy('start')
-      this.assemblyItems = []
-      const session = this.$store.state.neo4jDriver.session()
-      session
-        .readTransaction(this.getAssembly)
-        .then(() => session.close())
-        .then(() => this.toggleBusy('end'))
+      this.getAssembly()
+      // this.assemblyItems = []
+      // const session = this.$store.state.neo4jDriver.session()
+      // session
+      //   .readTransaction(this.getAssembly)
+      //   .then(() => session.close())
+      //   .then(() => this.toggleBusy('end'))
     },
     mintToken () {
       if (this.childrenFilter) {
@@ -183,33 +156,43 @@ export default {
       }
       this.mintPool.forEach(el => this.createToken(el.batchsize, el.assemblyUID))
     },
-    transferToken () { // TODO: clear request pool after approve
+    transferToken () {
       const p2Request = this.$store.getters.getRequestPool('p2')
-      // const p3Request = this.$store.getters.getRequestPool('p3')
-      const p2Actor = Object.keys(p2Request)
-      // const p3Actor = Object.keys(p3Request)
-      const p2Tokens = Object.values(p2Request)
-      // const p3Tokens = Object.values(p3Request)
-      p2Tokens.forEach((tokens, index) => {
-        tokens.forEach(token => {
-          this.addController(token, p2Actor[index])
+      if (p2Request !== undefined) {
+        const p2Actor = Object.keys(p2Request)
+        const p2Tokens = Object.values(p2Request)
+        p2Tokens.forEach((tokens, index) => {
+          tokens.forEach(token => {
+            this.addController(token, p2Actor[index])
+          })
+          const p2Qtys = Array.from({ length: tokens.length }, x => 1)
+          // console.group('TRANSFER BATCH TOKEN')
+          // console.log('p2 actor: ', p2Actor[index])
+          // console.log('p2 tokens: ', tokens)
+          // console.log('p2 quantity: ', p2Qtys)
+          // console.groupEnd()
+          this.transferBatch(this.actor, p2Actor[index], tokens, p2Qtys)
         })
-        const p2Qtys = Array.from({ length: tokens.length }, x => 1)
-        console.group('TRANSFER TOKEN')
-        console.log('p2 actor: ', p2Actor[index])
-        console.log('p2 tokens: ', tokens)
-        console.log('p2 quantity: ', p2Qtys)
-        console.groupEnd()
-        this.transferBatch(this.actor, p2Actor[index], tokens, p2Qtys)
-      })
-      // p3Tokens.forEach((tokens, index) => {
-      //   tokens.forEach(token => {
-      //     this.addController(token, p3Actor[index])
-      //   })
-      //   const p3Qtys = Array.from({ length: tokens.length }, x => 1)
-      //   this.transferBatch(this.actor, p3Actor[index], tokens, p3Qtys)
-      // })
-      this.$store.commit('clearRequestPool')
+      }
+      const p3Request = this.$store.getters.getRequestPool('p3')
+      if (p3Request !== undefined) {
+        const p3Actor = Object.keys(p3Request)
+        const p3Tokens = Object.values(p3Request)
+        // console.group('TRANSFER TOKEN')
+        // console.log('p2 request: ', p2Request)
+        // console.log('p2 actor: ', p2Actor)
+        // console.log('p2 tokens: ', p2Tokens)
+        // console.groupEnd()
+        p3Tokens.forEach((tokens, index) => {
+          tokens.forEach(token => {
+            this.addController(token, p3Actor[index])
+          })
+          const p3Qtys = Array.from({ length: tokens.length }, x => 1)
+          console.log('LENGTH: ', p3Qtys.length)
+          this.transferBatch(this.actor, p3Actor[index], tokens, p3Qtys)
+        })
+      }
+      // this.$store.commit('clearRequestPool')
     },
     approveControl () {
       this.setApproval('0x76471f9b4A5cbbaC6CE3Cd504ad2aFB702094f80')
@@ -218,32 +201,52 @@ export default {
     /**
     * NEO4J FUNCTIONS
     */
-    getAssembly (tx) {
-      const result = tx.run(
-        'MATCH(o:Order{orderID:$orderID})-[:CO_MAPPING_ORDER]-()-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid)' +
-        'WITH DISTINCT aid, auid OPTIONAL MATCH (auid)-[:HAS_WUID]-(t:Token)' +
-        'RETURN t,auid,aid', { orderID: this.currentOrder })
-      result.then(({ records }) => {
-        const assemblyItems = []
-        records.forEach(record => {
-          const token = record.get('t') ? record.get('t').properties : { tokenID: null, tokenSupply: null }
-          const aid = record.get('aid').properties
-          const auid = record.get('auid').properties
-          assemblyItems.push({ ...aid, ...auid, ...token })
-          this.$store.commit('updateAssemblyTokenMap', { aUID: auid.assemblyUID, token: token })
-          this.$store.commit('updateTokenSupplyMap', { tokenID: token.tokenID, tokenSupply: token.tokenSupply })
-        })
-        this.assemblyItems = assemblyItems
+    async getAssembly () {
+      this.toggleBusy('start')
+      this.assemblyItems = await neo.getAssembliesByOrder(this.currentOrder)
+      this.assemblyItems.forEach(assemblyItem => {
+        const a = assemblyItem
+        this.$store.commit('updateAssemblyTokenMap', { aUID: a.assemblyUID, tokenID: a.tokenID, tokenSupply: a.tokenSupply })
+        this.$store.commit('updateTokenSupplyMap', { tokenID: a.tokenID, tokenSupply: a.tokenSupply })
       })
+      this.$store.commit('refreshRequest')
+      this.toggleBusy('end')
+      //     this.$store.commit('updateTokenSupplyMap', { tokenID: token.tokenID, tokenSupply: token.tokenSupply })
+      // const result = tx.run(
+      //   'MATCH(o:Order{orderID:$orderID})-[:CO_MAPPING_ORDER]-()-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
+      //   'WITH DISTINCT o,aid, auid ' +
+      //   'OPTIONAL MATCH (auid)-[:HAS_WUID]-(t:Token)-[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o) ' +
+      //   'RETURN t,auid,aid', { orderID: this.currentOrder })
+      // result.then(({ records }) => {
+      //   const assemblyItems = []
+      //   records.forEach(record => {
+      //     const token = record.get('t') ? record.get('t').properties : { tokenID: null, tokenSupply: null }
+      //     const aid = record.get('aid').properties
+      //     const auid = record.get('auid').properties
+      //     assemblyItems.push({ ...aid, ...auid, ...token })
+      //     this.$store.commit('updateAssemblyTokenMap', { aUID: auid.assemblyUID, token: token })
+      //     this.$store.commit('updateTokenSupplyMap', { tokenID: token.tokenID, tokenSupply: token.tokenSupply })
+      //   })
+      //   this.assemblyItems = assemblyItems
+      // })
     },
-    updateAssemblyToken () {
-      const session = this.$store.state.neo4jDriver.session()
-      session
-        .run('UNWIND $items as item ' +
-          'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
-          'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a)', { items: this.attatchToken })
-        .then(() => this.initAssembly())
-        .then(() => session.close())
+    async updateAssemblyToken () {
+      const updated = await neo.updateAssemblyTokensOfOrder(this.currentOrder, this.attatchToken)
+      if (updated) {
+        this.getAssembly()
+      }
+      // const session = this.$store.state.neo4jDriver.session()
+      // const idx = this.currentOrder.indexOf('_')
+      // const tkDefID = 'tk' + this.currentOrder.slice(idx)
+      // session
+      //   .run('UNWIND $items as item ' +
+      //     'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
+      //     'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ' +
+      //     'WITH t ' +
+      //     'MATCH (tk:TK{tokenDefinitionID:$tkDefID}) ' +
+      //     'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)', { items: this.attatchToken, tkDefID: tkDefID })
+      //   .then(() => this.initAssembly())
+      //   .then(() => session.close())
     },
     // updateTokenSupply (_ids, _values) { // TODO: apply funtion in Station Component
     //   const tokenSupplyChange = _ids.map((id, index) => ({ tokenID: id, value: values[index]}))
@@ -325,12 +328,17 @@ export default {
     transferBatch (from, to, ids, values) {
       // function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)
       const web3 = this.drizzleInstance.web3
-      const data = web3.utils.sha3('safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)')
+      // const data = web3.utils.sha3('safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)')
+      const data = web3.utils.sha3('safeBatchTransferFrom')
       const dataBytes = web3.utils.hexToBytes(data)
-      this.drizzleInstance
-        .contracts.APTSC
-        .methods.safeBatchTransferFrom
-        .cacheSend(from, to, ids, values, dataBytes, { gas: 1000000, from: this.actor })
+      try { // p2: 2million gas, p3:10 million gas
+        this.drizzleInstance
+          .contracts.APTSC
+          .methods.safeBatchTransferFrom
+          .cacheSend(from, to, ids, values, dataBytes, { gas: 10000000, from: this.actor })
+      } catch (err) {
+        console.error('Erro during transferBatch: ', err)
+      }
     },
     /**
     * HELPER FUNCTIONS

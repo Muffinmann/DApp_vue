@@ -25,9 +25,6 @@ export default {
   mounted () {
     const contractEventHandler = ({ contractName, eventName, data }) => {
       if (eventName === 'TransferSingle') {
-        console.group('Toast Eventhandler')
-        console.log('token supply map: ', this.tokenSupplyMap)
-        console.groupEnd()
         this.toastMsg = `${contractName}|${eventName}:(token:${data._id}|${data._value})---> ${data._to}`
         // const subOptions = {
         //   toaster: 'b-toaster-top-right',
