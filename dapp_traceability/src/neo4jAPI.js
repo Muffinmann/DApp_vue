@@ -44,13 +44,30 @@ export default {
     await session.readTransaction(query).then(() => session.close())
     return orders
   },
+  orderGenerator: async function * () {
+    const orders = []
+    const query = tx => {
+      const result = tx.run('MATCH (o:Order) return o')
+      result.subscribe({
+        onNext: record => {
+          const o = record.get('o').properties
+          orders.push(o.orderID)
+        }
+      })
+    }
+    const session = driver.session()
+    await session.readTransaction(query).then(() => session.close())
+    for (const o of orders) {
+      yield o
+    }
+  },
   getAssembliesByOrder: async function (orderID) {
     const items = []
     const query = tx => {
       const result = tx.run(
         'MATCH(o:Order{orderID:$orderID})-[:CO_MAPPING_ORDER]-()-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
         'WITH DISTINCT o,aid, auid ' +
-        'OPTIONAL MATCH (auid)-[:HAS_WUID]-(t:Token)-[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o) ' +
+        'OPTIONAL MATCH (auid)-[:HAS_WUID]-(t:Token) ' +// -[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o)
         'RETURN t,auid,aid', { orderID: orderID })
       result.subscribe({
         onNext: record => {
@@ -65,20 +82,40 @@ export default {
     await session.readTransaction(query).then(() => session.close())
     return items
   },
+  createToken: async function (tokenID, tokenSupply) {
+    const query = (tx, tokenID, tokenSupply) => {
+      return tx.run('CREATE (:Token{tokenID: $tokenID, tokenSupply: $tokenSupply})', { tokenID: tokenID, tokenSupply: tokenSupply })
+    }
+    const session = driver.session()
+    let bookmark
+    try {
+      await session.writeTransaction(tx => query(tx, tokenID, tokenSupply))
+        .then(() => { bookmark = session.lastBookmark() })
+        .then(() => session.close())
+      return bookmark
+    } catch (err) {
+      console.log('Creating Token Node failed: ', err)
+    }
+  },
   // @PARAM tokens: a list of objects having properties:
   // { serialNumber: String, tokenID: String, tokenSupply: Int, timeStamp: String }
-  updateAssemblyTokensOfOrder: async function (orderID, tokens) {
+  updateAssemblyTokensOfOrder: async function (orderID, tokens, savedBookmarks) {
     const tkDefID = 'tk' + orderID.slice(orderID.indexOf('_'))
     const query = (tx, tokens, tkDefID) => {
       return tx.run('UNWIND $items as item ' +
-            'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
-            'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ' +
-            'WITH t ' +
-            'MATCH (tk:TK{tokenDefinitionID:$tkDefID}) ' +
-            'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)', { items: tokens, tkDefID: tkDefID })
+            'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly), (t:Token{tokenID: item.tokenID}) ' +
+            'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t)-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokens, tkDefID: tkDefID })
+      // return tx.run('UNWIND $items as item ' +
+      //       'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly), (t:Token{tokenID: item.tokenID}) ' +
+      //       'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokens, tkDefID: tkDefID })
+      // + 'WITH t ' + 'MATCH (tk:TK{tokenDefinitionID:$tkDefID}) ' + 'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)'
     }
-    const session = driver.session()
-    await session.writeTransaction(tx => query(tx, tokens, tkDefID)).then(() => session.close())
+    const session = driver.session({ bookmarks: savedBookmarks })
+    try {
+      await session.writeTransaction(tx => query(tx, tokens, tkDefID)).then(() => session.close())
+    } catch (err) {
+      console.log('Update Assembly Token failed: ', err)
+    }
     return true
   },
   getPMsByOrderAndArea: async function (orderID, area) {
@@ -94,7 +131,7 @@ export default {
       if (finished) {
         return pmItems
       } else if (idx.length !== 1) {
-        idx.shift() // exclude the first item from the iteration
+        idx.shift() // exclude the targett item from the iteration
         idx.forEach(i => {
           pmItems[0].children = [...pmItems[0].children, ...pmItems[i].children]
           pmItems[i] = null
@@ -111,7 +148,7 @@ export default {
       if (area === 'p2') {
         result = tx.run(
           'MATCH(o:Order{orderID:$orderID})-[:CONTAINS_O_SO]-()-[:LOGS_C_UID]-(pmuid)-[:IS_C_UID]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
-          'WITH o, pmuid, pmid, aid, auid OPTIONAL MATCH (pmid)-[:HAS_TOKEN]-(t:Token)-[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o) ' +
+          'WITH DISTINCT o, pmuid, pmid, aid, auid OPTIONAL MATCH (pmuid)-[:HAS_PMUID]-(t:Token) ' +// -[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o) ' +
           'RETURN pmuid, pmid, aid, auid, t', { orderID: orderID })
       } else if (area === 'p3') {
         result = tx.run(
@@ -119,7 +156,7 @@ export default {
           'WITH o, collect(pm) AS pms ' +
           'MATCH (o)-[:CO_MAPPING_ORDER]-(:Product)-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
           'WHERE NOT pmid IN pms ' +
-          'WITH o, pmid, aid, auid OPTIONAL MATCH (pmid)-[:HAS_TOKEN]-(t:Token)-[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o) ' +
+          'WITH DISTINCT o, pmid, aid, auid OPTIONAL MATCH (pmid)-[:HAS_TOKEN]-(t:Token)-[:CONTAINS_TOKEN]-(:Product)-[:CO_MAPPING_ORDER]-(o) ' +
           'RETURN pmid, aid, auid, t',
           { orderID: orderID })
       }
@@ -142,33 +179,47 @@ export default {
     await session.readTransaction(tx => query(tx, orderID, area)).then(() => session.close())
     return collectItemChildren(items)
   },
-  transferTokenToPM: async function (trans) {
-    const query = (tx, trans) => tx.run('UNWIND $transfer as tf ' +
-            'MATCH (t:Token{tokenID: tf.tokenID})-[:HAS_TOKEN]-()-[:CONTAINS_C_ASSEMBLY]-(p:PM{pmID: tf.to}) ' +
-            'MERGE (t)-[r:TRANSFER_TO{quantity: tf.amount}]->(p) ' +
-            'ON CREATE SET t.tokenSupply = t.tokenSupply - tf.amount ' +
-            'ON MATCH SET t.tokenSupply = t.tokenSupply - tf.amount, r.quantity = r.quantity + tf.amount', { transfer: trans })
-    const session = driver.session()
-    await session.writeTransaction((tx) => query(tx, trans)).then(() => session.close())
-    return true
-  },
+  // @PARAM trans: a list of objects containing properties as:
+  // { tokenID: String, to: String, amount: Int }
+  // transferTokenToPM: async function (trans, area) {
+  //   const p2query = 'UNWIND $transfer as tf ' +
+  //           'MATCH (t:Token{tokenID: tf.tokenID})-[:HAS_TOKEN]-()-[:CONTAINS_C_ASSEMBLY]-(:PM)-[:IS_C_UID]-(p:pmUID{pmUID: tf.to}) ' +
+  //           'MERGE (t)-[r:TRANSFER_TO{quantity: tf.amount}]->(p) ' +
+  //           'ON CREATE SET t.tokenSupply = t.tokenSupply - tf.amount ' +
+  //           'ON MATCH SET t.tokenSupply = t.tokenSupply - tf.amount, r.quantity = r.quantity + tf.amount'
+  //   const query = (tx, trans) => tx.run('UNWIND $transfer as tf ' +
+  //           'MATCH (t:Token{tokenID: tf.tokenID})-[:HAS_TOKEN]-()-[:CONTAINS_C_ASSEMBLY]-(:PM)-[:IS_C_UID]-(p:pmUID{pmUID: tf.to}) ' +
+  //           'MERGE (t)-[r:TRANSFER_TO{quantity: tf.amount}]->(p) ' +
+  //           'ON CREATE SET t.tokenSupply = t.tokenSupply - tf.amount ' +
+  //           'ON MATCH SET t.tokenSupply = t.tokenSupply - tf.amount, r.quantity = r.quantity + tf.amount', { transfer: trans })
+  //   const session = driver.session()
+  //   await session.writeTransaction((tx) => query(tx, trans)).then(() => session.close())
+  //   return true
+  // },
+  // @DESCRIB: attach crafted token to PM and update the supply of assembly tokens
   // @PARAM tokens: a list of objects containing properties as:
-  // { serialNumber: String, tokenID: String, timeStamp: String}
-  updatePmTokensOfOrder: async function (orderID, tokens, area) {
+  // { serialNumber: String, tokenID: String, timeStamp: String, children: Array}
+  updatePmTokensOfOrder: async function (orderID, tokens, area, savedBookmarks) {
     const p2query = 'UNWIND $tokens as token ' +
           'MATCH (b:pmUID {pmUID: token.serialNumber})-[:IS_C_UID]-(a:PM) ' +
           'MERGE (a)-[:HAS_TOKEN{timeStamp: token.timeStamp}]->(t:Token {tokenID: token.tokenID})-[:HAS_PMUID{timeStamp: token.timeStamp}]->(b) ' +
           'ON CREATE SET t.tokenSupply = 1 ' +
-          'WITH t ' +
-          'MATCH (tk:TK)-[:CO_MAPPING_TOKEN]-(o:Order{orderID:$orderID})' +
-          'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)'
+          'WITH t, token ' +
+          'UNWIND token.children as child ' +
+          'MATCH (c:Token{tokenID: child}) ' +
+          'MERGE (t)-[:HAS_CHILDREN{amount:1}]-(c) ' +
+          'ON CREATE SET c.tokenSupply = c.tokenSupply - 1 '
+          // 'MATCH (tk:TK)-[:CO_MAPPING_TOKEN]-(o:Order{orderID:$orderID})' +
+          // 'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)'
     const p3query = 'UNWIND $tokens as token ' +
-          'MATCH (a:PM{pmID: token.serialNumber}) ' +
-          'MERGE (a)-[:HAS_TOKEN{timeStamp: token.timeStamp}]->(t:Token {tokenID: token.tokenID}) ' +
+          'MATCH (:Order{orderID:$orderID})-[:CO_MAPPING_ORDER]-(pd:Product)-[:CONTAINS_C_PM]-(a:PM{pmID: token.serialNumber}) ' +
+          'MERGE (a)-[:HAS_TOKEN{timeStamp: token.timeStamp}]->(t:Token {tokenID: token.tokenID})<-[:CONTAINS_TOKEN]-(pd) ' +
           'ON CREATE SET t.tokenSupply = 1 ' +
-          'WITH t ' +
-          'MATCH (tk:TK)-[:CO_MAPPING_TOKEN]-(o:Order{orderID:$orderID}) ' +
-          'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)'
+          'WITH t, token ' +
+          'UNWIND token.children as child ' +
+          'MATCH  (c:Token{tokenID: child}) ' +
+          'MERGE (t)-[:HAS_CHILDREN{amount:1}]-(c) ' +
+          'ON CREATE SET c.tokenSupply = c.tokenSupply - 1 '
     const query = (tx, orderID, tokens) => {
       if (area.toLowerCase() === 'p2') {
         return tx.run(p2query, { orderID: orderID, tokens: tokens })
@@ -176,7 +227,7 @@ export default {
         return tx.run(p3query, { orderID: orderID, tokens: tokens })
       }
     }
-    const session = driver.session()
+    const session = driver.session({ bookmarks: savedBookmarks })
     await session.writeTransaction(tx => query(tx, orderID, tokens)).then(() => session.close())
     return true
   }
