@@ -13,23 +13,19 @@ export default new Vuex.Store({
     assemblyTokenMap: {},
     tokenProductMap: { p2: {}, p3: {} },
     tokenSupplyMap: {},
+    productTokenMap: {},
     childrenFilter: [],
+    p2Tokens: [],
     autoRefresh: false,
     refreshRequest: false
   },
   getters: {
-    getRequestPool: (state) => (area) => {
-      return state.requestPool[area]
-    },
-    getAssemblyToken: (state) => (aUID) => {
-      return state.assemblyTokenMap[aUID]
-    },
-    getTokenUsedInPM: (state) => (tokenID, area) => {
-      return state.tokenProductMap[area][tokenID]
-    },
-    getTokenSupply: (state) => (tokenID) => {
-      return state.tokenSupplyMap[tokenID]
-    },
+    getRequestPool: state => area => state.requestPool[area],
+    getAssemblyToken: state => aUID => state.assemblyTokenMap[aUID],
+    getTokenUsedInPM: state => (tokenID, area) => state.tokenProductMap[area][tokenID],
+    getTokenSupply: state => tokenID => state.tokenSupplyMap[tokenID],
+    getProductToken: state => productID => state.productTokenMap[productID],
+    getP2Tokens: state => state.p2Tokens,
     getChildrenFilter: (state) => state.childrenFilter
   },
   mutations: {
@@ -59,6 +55,12 @@ export default new Vuex.Store({
     },
     updateChildrenFilter (state, children) {
       state.childrenFilter = children
+    },
+    updateP2Tokens (state, tokens) {
+      state.p2Tokens = tokens
+    },
+    updateProductToken (state, { productID, tokenID }) {
+      state.productTokenMap[productID] = tokenID
     },
     autoRefresh (state) {
       state.autoRefresh = !state.autoRefresh
