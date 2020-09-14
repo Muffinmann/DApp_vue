@@ -3,7 +3,9 @@
     <b-container>
       <h2 v-b-tooltip :title="actor">{{ area.toUpperCase() }} Area</h2>
       <p>Current Order: {{currentOrder}}| Product: {{ currentOrder ? 'wh' + currentOrder.slice(1): null }}</p>
-
+      <b-progress :max="genMax" animated>
+        <b-progress-bar :value="genStep" variant="info" :label="`${((genStep / genMax) * 100).toFixed(1)}% |P1`"></b-progress-bar>
+      </b-progress>
       <b-input-group size="sm">
             <b-form-input
               v-model="filter"
@@ -46,7 +48,10 @@
       </template>
       </b-table>
 
-      <button @click="craftTokenBatch">Craft Token</button>
+      <b-button @click="craftTokenBatch">Craft Token</b-button>
+      <b-button class="mx-2" @click="detachToken">Detach Token</b-button>
+      <b-button v-if="area==='p2'" class="mx-2" @click="transferTokenToNext">Transfer Token</b-button>
+      <b-button v-if="area==='p3'" class="mx-2" @click="finalMount">Final Mount</b-button>
     </b-container>
   </b-col>
 </template>
@@ -69,41 +74,52 @@ export default {
       ],
       pmItems: [],
       attachToken: [],
-      craftPool: []
+      craftPool: [],
+      poolGen: null,
+      result: null,
+      genStep: 0,
+      genMax: 100
     }
   },
   mounted () {
-    const eventHandler = ({ contractName, eventName, data }) => {
-      if (eventName === 'serialNumber' && data._actor === this.actor) {
+    /* const eventHandler = ({ contractName, eventName, data }) => {
+      if (eventName === 'serialNumber' && (data._actor === this.actor)) {
         const tokenID = data._id
         const serialNumber = data._serialNumber
-        const timeStamp = this.createTimeStamp()
-        this.attachToken.push({
-          serialNumber: serialNumber,
-          tokenID: tokenID,
-          timeStamp: timeStamp
-        })
-        if (this.area === 'p2') {
-          if (serialNumber === this.craftPool.slice(-1)[0].pmUID) {
-            this.attachTokenToPM()
-          }
-        } else if (this.area === 'p3') {
-          if (serialNumber === this.craftPool.slice(-1)[0].pmID) {
-            this.attachTokenToPM()
-          }
+        const regex = /wh_/
+        const isFinalMount = regex.test(serialNumber)
+        if (isFinalMount) {
+          console.log('Product token: ', tokenID)
+          const productID = 'wh' + this.currentOrder.slice(1)
+          this.$store.commit('updateProductToken', productID, tokenID)
+        } else {
+          const timeStamp = this.createTimeStamp()
+          this.attachToken.shift()
+          this.attachToken.push({
+            serialNumber: serialNumber,
+            tokenID: tokenID,
+            timeStamp: timeStamp
+          })
+          console.group(`>>>SERIAL NUMBER ${this.area}<<<`)
+          console.log('Serial Number: ', serialNumber)
+          console.log('attachToken: ', this.attachToken)
+          console.groupEnd()
+          this.attachTokenToPM()
+          this.genStep += 1
         }
       } else if (eventName === 'TransferBatch' && data._to === this.actor) {
         console.group(`>>> Transfer Batch to  ${this.area.toUpperCase()} <<< `)
         console.log(data)
         console.groupEnd()
-        this.updateTokenSupply(data._ids, data._values)
+        // this.updateTokenSupply(data._ids, data._values)
       }
     }
-    this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
+    this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) }) */
   },
   watch: {
     currentOrder: 'initPM',
-    refreshRequest: 'requestToken'
+    refreshRequest: 'requestToken',
+    genStep: 'loadNext'
   },
   computed: {
     ...mapGetters('drizzle', ['drizzleInstance']),
@@ -116,19 +132,19 @@ export default {
   },
   methods: {
     async initPM () {
+      this.toggleBusy('start')
       await this.retrievePM()
       this.requestToken()
+      this.toggleBusy('end')
     },
     async retrievePM () {
-      this.toggleBusy('start')
       this.pmItems = await neo.getPMsByOrderAndArea(this.currentOrder, this.area)
-      this.pmItems.forEach(pm =>
-        pm.children.forEach(child => {
-          const token = this.$store.getters.getAssemblyToken(child.assemblyUID)
-          this.$store.commit('updateTokenProductMap', { tokenID: token.tokenID, pmID: pm.pmID, area: this.area })
-        })
-      )
-      this.toggleBusy('end')
+      // this.pmItems.forEach(pm =>
+      //   pm.children.forEach(child => {
+      //     const token = this.$store.getters.getAssemblyToken(child.assemblyUID)
+      //     this.$store.commit('updateTokenProductMap', { tokenID: token.tokenID, pmID: pm.pmID, area: this.area })
+      //   })
+      // )
     },
     requestToken () {
       const requestPool = this.pmItems.filter(el => el.tokenID === null)
@@ -144,35 +160,105 @@ export default {
         this.$store.commit('requestToken', { tokens: tokens, newActor: this.actor, area: this.area })
       }
     },
+    loadNext () {
+      if (!this.result.done) {
+        this.result.value.then(r => {
+          this.result = this.poolGen.next(r)
+        })
+      }
+    },
     craftTokenBatch () {
+      let craftPool
       if (this.filter) {
-        this.craftPool = this.pmItems.filter(row =>
+        craftPool = this.pmItems.filter(row =>
           Object.keys(row).some(key =>
             String(row[key]).toLowerCase().indexOf(this.filter) > -1)
-        )
+        ).filter(row => row.tokenID === null)
       } else {
-        this.craftPool = this.pmItems
+        craftPool = this.pmItems.filter(row => row.tokenID === null)
       }
-      this.craftPool.forEach(pm => {
-        let serialNumber = ''
-        const tokens = pm.children
-          .map(child => child.assemblyUID)
-          .map(uid => this.$store.getters.getAssemblyToken(uid).tokenID)
-        const qtys = Array.from({ length: tokens.length }, x => 1)
-        if (this.area === 'p2') {
-          serialNumber = pm.pmUID
-        } else if (this.area === 'p3') {
-          serialNumber = pm.pmID
+      this.genStep = 0
+      this.genMax = craftPool.length
+      craftPool = craftPool.map(p => Promise.resolve(p))
+      const poolGenerator = function * (pool, thisArg) {
+        for (const i of pool) {
+          const currentPM = yield i
+          let serialNumber = ''
+          const tokens = currentPM.children
+            .map(child => child.assemblyUID)
+            .map(uid => thisArg.$store.getters.getAssemblyToken(uid).tokenID)
+          const qtys = Array.from({ length: tokens.length }, x => 1)
+          const gas = 500000 * Math.ceil(qtys.length / 10) ** 2
+          if (thisArg.area === 'p2') {
+            serialNumber = currentPM.pmUID
+          } else if (thisArg.area === 'p3') {
+            serialNumber = currentPM.pmID
+          }
+          thisArg.craftToken(tokens, qtys, 1, serialNumber, gas)
         }
-        this.craftToken(tokens, qtys, 1, serialNumber)
+      }
+      this.poolGen = poolGenerator(craftPool, this)
+      this.result = this.poolGen.next()
+      this.result.value.then(r => {
+        this.result = this.poolGen.next(r)
       })
     },
-    craftToken (inIds, inQtys, outQtys, serialNumber) {
+    finalMount () {
+      const p2Tokens = this.$store.getters.getP2Tokens
+      const p3Tokens = this.pmItems.map(pm => pm.tokenID)
+      const allTokens = [...p2Tokens, ...p3Tokens]
+      const qtys = Array(allTokens.length).fill(1)
+      const serialNumber = 'wh' + this.currentOrder.slice(1)
+      const gas = 500000 * Math.ceil(qtys.length / 10) ** 2
+      this.craftToken(allTokens, qtys, 1, serialNumber, gas)
+    },
+    transferTokenToNext () {
+      const tokens = this.pmItems.map(pm => pm.tokenID)
+      const values = Array(tokens.length).fill(1)
+      const to = this.drizzleInstance.store.getState().accounts[2]
+      const gas = 200000 * Math.ceil(tokens.length / 10) ** 2
+      tokens.forEach(token => this.addController(token, to))
+      this.transferBatch(this.actor, to, tokens, values, gas)
+      this.$store.commit('updateP2Tokens', tokens)
+    },
+    detachToken () {
+      const tokens = this.pmItems.map(pm => pm.tokenID)
+      console.log('DETACH TOKENS: ', tokens)
+      const session = this.$store.state.neo4jDriver.session()
+      session
+        .run('UNWIND $tokens as token ' +
+          'MATCH (t:Token{tokenID:token}) ' +
+          'DETACH DELETE t', { tokens: tokens })
+        .then(() => session.close())
+        .then(() => this.initPM())
+    },
+    addController (id, newController) {
+      this.drizzleInstance
+        .contracts.APTSC
+        .methods.addController
+        .cacheSend(id, newController, { gas: 100000, from: this.actor })
+    },
+    transferBatch (from, to, ids, values, gas) {
+      // function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)
+      const web3 = this.drizzleInstance.web3
+      // const data = web3.utils.sha3('safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)')
+      const data = web3.utils.sha3('safeBatchTransferFrom')
+      const dataBytes = web3.utils.hexToBytes(data)
+      try { // p2: 2million gas, p3:10 million gas
+        this.drizzleInstance
+          .contracts.APTSC
+          .methods.safeBatchTransferFrom
+          .cacheSend(from, to, ids, values, dataBytes, { gas: gas, from: this.actor })
+      } catch (err) {
+        console.error('Erro during transferBatch: ', err)
+      }
+    },
+    craftToken (inIds, inQtys, outQtys, serialNumber, gas) {
       // craft(uint256[] calldata _inputIds, uint256[] calldata _inputQuantities, uint256 _outputInitialSupply, string calldata _uri, address _actor, string calldata _serialNumber)
       this.drizzleInstance
         .contracts.APTSC
         .methods.craft
-        .cacheSend(inIds, inQtys, outQtys, 'uri/path', this.actor, serialNumber, { gas: 500000, from: this.actor })
+        .cacheSend(inIds, inQtys, outQtys, 'uri/path', this.actor, serialNumber, { gas: gas, from: this.actor })
     },
     async updateTokenSupply (_ids, _values) {
       const tokenSupplyChange = _ids.map((id, index) => {
@@ -184,7 +270,7 @@ export default {
     },
     async attachTokenToPM () {
       await neo.updatePmTokensOfOrder(this.currentOrder, this.attachToken, this.area)
-      this.initPM()
+      this.retrievePM()
     },
     attachTokenToPmArea3 (tx, tokenID, pmID) {
       return tx.run(

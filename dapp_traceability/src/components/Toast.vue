@@ -36,6 +36,10 @@ export default {
       } else if (eventName === 'TransferBatch') {
         this.toastMsg = `${eventName}:(token:${data._ids})---> ${data._to}`
         this.$bvToast.show('create')
+      } else if (eventName === 'controllerUpdate') {
+        // console.log('controllerUpdate', data)
+        this.toastMsg = `${eventName}:(token:${data._id})---> ${data._updatedAddress}`
+        this.$bvToast.show('create')
       }
     }
     this.$drizzleEvents.$on('drizzle/contractEvent', payload => { contractEventHandler(payload) })

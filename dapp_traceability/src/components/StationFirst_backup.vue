@@ -89,7 +89,7 @@ export default {
     }
   },
   mounted () {
-    /* const eventHandler = ({ contractName, eventName, data }) => {
+    const eventHandler = ({ contractName, eventName, data }) => {
       if (eventName === 'TransferSingle' && data._operator === this.actor) {
         console.group('>>> P1 TransferSingle <<<')
         console.log(data)
@@ -104,6 +104,7 @@ export default {
         const tokenID = data._id
         const serialNumber = data._serialNumber
         const timeStamp = this.createTimeStamp()
+        console.log('timeStamp: ', timeStamp)
         this.attatchToken.shift()
         this.attatchToken.push({
           serialNumber: serialNumber,
@@ -116,8 +117,8 @@ export default {
         console.log('transferBatch: ', data)
         // this.updateTokenSupply(data._ids, data._values)
       }
-    } */
-    // this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
+    }
+    this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
   },
   computed: {
     ...mapGetters('drizzle', ['drizzleInstance']),
@@ -142,6 +143,12 @@ export default {
       this.toggleBusy('start')
       await this.getAssembly()
       this.toggleBusy('end')
+      // this.assemblyItems = []
+      // const session = this.$store.state.neo4jDriver.session()
+      // session
+      //   .readTransaction(this.getAssembly)
+      //   .then(() => session.close())
+      //   .then(() => this.toggleBusy('end'))
     },
     loadNext () {
       console.log('THIS RESULT------>', this.result)
@@ -149,17 +156,9 @@ export default {
         this.result.value.then(r => {
           this.result = this.poolGen.next(r)
         })
-      } else {
-        const state = this.drizzleInstance.store.getState()
-        const events = state.contracts.APTSC.events
-        const txHash = Array.from(new Set(events.map(event => event.transactionHash)))
-        txHash.forEach(h => this.drizzleInstance.web3.eth.getTransactionReceipt(h, console.log))
-        console.group('TX Events')
-        console.log('Events: ', events)
-        console.groupEnd()
       }
     },
-    createTokenNode (tokenID, tokenSupply) {
+    async createTokenNode (tokenID, tokenSupply) {
       return neo.createToken(tokenID, tokenSupply)
       // this.savedBookmarks.push(bm)
     },
@@ -168,9 +167,12 @@ export default {
       if (this.childrenFilter) {
         const filters = this.childrenFilter
         mintPool = this.assemblyItems.filter(row => this.multipleItemFilter(row, filters)).filter(row => row.tokenID === null)
+        // this.mintPool = mintPool.filter(row => row.tokenID === null)
       } else {
+        // this.mintPool = this.assemblyItems.filter(row => row.tokenID === null)
         mintPool = this.assemblyItems.filter(row => row.tokenID === null)
       }
+      // this.mintPool.forEach(el => this.createToken(el.batchsize, el.assemblyUID))
       this.genMax = mintPool.length
       this.genStep = 0
       mintPool = mintPool.map(e => Promise.resolve(e))
@@ -242,10 +244,48 @@ export default {
       })
       this.$store.commit('refreshRequest')
       return true
+      //     this.$store.commit('updateTokenSupplyMap', { tokenID: token.tokenID, tokenSupply: token.tokenSupply })
+      // const result = tx.run(
+      //   'MATCH(o:Order{orderID:$orderID})-[:CO_MAPPING_ORDER]-()-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
+      //   'WITH DISTINCT o,aid, auid ' +
+      //   'OPTIONAL MATCH (auid)-[:HAS_WUID]-(t:Token)-[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o) ' +
+      //   'RETURN t,auid,aid', { orderID: this.currentOrder })
+      // result.then(({ records }) => {
+      //   const assemblyItems = []
+      //   records.forEach(record => {
+      //     const token = record.get('t') ? record.get('t').properties : { tokenID: null, tokenSupply: null }
+      //     const aid = record.get('aid').properties
+      //     const auid = record.get('auid').properties
+      //     assemblyItems.push({ ...aid, ...auid, ...token })
+      //     this.$store.commit('updateAssemblyTokenMap', { aUID: auid.assemblyUID, token: token })
+      //     this.$store.commit('updateTokenSupplyMap', { tokenID: token.tokenID, tokenSupply: token.tokenSupply })
+      //   })
+      //   this.assemblyItems = assemblyItems
+      // })
     },
     updateAssemblyToken () {
       this.savedBookmarks.then(bm => neo.updateAssemblyTokensOfOrder(this.currentOrder, this.attatchToken, bm)).then(() => this.getAssembly())
+      // const session = this.$store.state.neo4jDriver.session()
+      // const idx = this.currentOrder.indexOf('_')
+      // const tkDefID = 'tk' + this.currentOrder.slice(idx)
+      // session
+      //   .run('UNWIND $items as item ' +
+      //     'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
+      //     'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ' +
+      //     'WITH t ' +
+      //     'MATCH (tk:TK{tokenDefinitionID:$tkDefID}) ' +
+      //     'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)', { items: this.attatchToken, tkDefID: tkDefID })
+      //   .then(() => this.initAssembly())
+      //   .then(() => session.close())
     },
+    // updateTokenSupply (_ids, _values) { // TODO: apply funtion in Station Component
+    //   const tokenSupplyChange = _ids.map((id, index) => ({ tokenID: id, value: values[index]}))
+    //   const tokenTransferTo = _ids.map(id => this.$store.getters.getTokenInProduct(id, area))
+    //   const session = this.$store.state.neo4jDriver.session()
+    //   session.
+    //     run('UNWIND $changes as change' +
+    //       'MATCH (t:Token{tokenID: change.tokenID})')
+    // },
     detachToken () {
       const session = this.$store.state.neo4jDriver.session()
       const assemblyUID = this.assemblyItems[0].assemblyUID
@@ -265,6 +305,19 @@ export default {
         .then(() => session.readTransaction(this.getAssembly))
         .then(() => session.close())
     },
+    // attachTokenToAssembly (tx, tokenID, tokenSupply, serialNumber, timeStamp) {
+    //   // console.log('TIME------>', new Date().toUTCString())
+    //   return tx.run(
+    //     'MATCH (a:AssemblyUID {assemblyUID: $serialNumber})-[:IS_C_UID]-(b:Assembly)' +
+    //     'MERGE (b)-[:HAS_TOKEN{timeStamp:$timeStamp}]->(t:Token {tokenID: $tokenID, tokenSupply:$tokenSupply})-[:HAS_WUID{timeStamp:$timeStamp}]->(a)',
+    //     {
+    //       serialNumber: serialNumber,
+    //       tokenID: tokenID,
+    //       tokenSupply: tokenSupply,
+    //       timeStamp: timeStamp
+    //     }
+    //   )
+    // },
     /**
     * BLOCKCHAIN FUNCTIONS
     */
@@ -280,9 +333,32 @@ export default {
         .methods.addController
         .cacheSend(id, newController, { gas: 100000, from: this.actor })
     },
+    checkApproval (owner, operator) {
+      const state = this.drizzleInstance.store.getState()
+      // console.log('STATE: ', state)
+      const dataKey = this.drizzleInstance
+        .contracts.APTSC
+        .methods.isApprovedForAll
+        .cacheCall(owner, operator)
+      // console.log('DATA KEY: ', dataKey)
+      // console.log('CONTRACT INSTANCE: ', this.contractInstances.APTSC.isApprovedForAll[dataKey].value)
+      // const value = this.$store.state.contracts.instances.APTSC.isApprovedForAll[dataKey]
+      const value = state.contracts.APTSC.isApprovedForAll[dataKey].value
+      // console.log('VALUE: ', value)
+      // const result = JSON.parse(JSON.stringify(value))
+      // console.log('RESULT: ', result)
+      return value
+    },
+    setApproval (operator) {
+      this.drizzleInstance
+        .contracts.APTSC
+        .methods.setApprovalForAll
+        .cacheSend(operator, true)
+    },
     transferBatch (from, to, ids, values, gas) {
       // function safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)
       const web3 = this.drizzleInstance.web3
+      // const data = web3.utils.sha3('safeBatchTransferFrom(address _from, address _to, uint256[] calldata _ids, uint256[] calldata _values, bytes calldata _data)')
       const data = web3.utils.sha3('safeBatchTransferFrom')
       const dataBytes = web3.utils.hexToBytes(data)
       try { // p2: 2million gas, p3:10 million gas

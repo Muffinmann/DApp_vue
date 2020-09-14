@@ -2,7 +2,8 @@
   <div v-if="isDrizzleInitialized" id="app">
     <div id="nav">
       <router-link to="/">Home</router-link> |
-      <router-link to="/about">test</router-link>
+      <router-link to="/about">Sample</router-link> |
+      <router-link to="/test">Sim Test</router-link>
     </div>
     <keep-alive>
     <router-view/>

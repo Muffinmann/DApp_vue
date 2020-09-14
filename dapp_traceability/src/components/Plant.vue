@@ -9,6 +9,7 @@
     </b-row>
     <b-row>
       <Station :actor="actors[2]" area="p3"/>
+      <FinalProduct/>
     </b-row>
   </b-container>
 </template>
@@ -18,6 +19,7 @@ import Dashboard from '@/components/Dashboard.vue'
 import Order from '@/components/Order.vue'
 import StationFirst from '@/components/StationFirst.vue'
 import Station from '@/components/Station.vue'
+import FinalProduct from '@/components/FinalProduct.vue'
 
 export default {
   name: 'Plant',
@@ -25,7 +27,8 @@ export default {
     Dashboard,
     Order,
     StationFirst,
-    Station
+    Station,
+    FinalProduct
   },
   data () {
     return {
