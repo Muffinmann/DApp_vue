@@ -1,23 +1,16 @@
 <template>
-  <div v-if="isDrizzleInitialized" id="app">
+  <div id="app">
     <div id="nav">
       <router-link to="/">Home</router-link> |
-      <router-link to="/about">Sample</router-link> |
+      <router-link to="/plant">Plant</router-link> |
       <router-link to="/test">Sim Test</router-link>
     </div>
     <keep-alive>
     <router-view/>
     </keep-alive>
   </div>
-  <div v-else>Loading...</div>
 </template>
 
-<script>
-import { mapGetters } from 'vuex'
-export default {
-  computed: mapGetters('drizzle', ['isDrizzleInitialized'])
-}
-</script>
 <style>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;

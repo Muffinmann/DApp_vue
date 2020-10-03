@@ -5,6 +5,7 @@
       <b-list-group-item v-for="(value, key) in orders" :key="key" :active="key === currentkey">{{ value }}</b-list-group-item>
     </b-list-group> -->
     <b-button @click="simProduction();start()">{{ isStarted ? 'Next' : 'Start' }}</b-button>
+    <b-button class='mx-3' @click="value + 1">Mint one Assembly</b-button>
     <div>
     <h5>Creating & Crafting Token: </h5>
     <b-progress :max="max+max2+max3" animated>
@@ -60,14 +61,13 @@ export default {
   },
   mounted () {
     const eventHandler = ({ contractName, eventName, data }) => {
-      console.log('TX Hash: ', this.txHash())
+      // console.log('TX Hash: ', this.txHash())
       if (eventName === 'TransferSingle' && data._operator === this.actors[0]) {
         console.group('>>> TransferSingle <<<')
         console.log(data)
         console.groupEnd()
         const tokenID = data._id
         const tokenSupply = parseInt(data._value)
-        console.log('type of supply:', typeof tokenSupply)
         this.savedBookmarks = this.createTokenNode(tokenID, tokenSupply)
       } else if (eventName === 'craftedToken') {
         console.group('>>> craftedToken <<<')
@@ -112,6 +112,7 @@ export default {
         console.groupEnd()
       }
     }
+    console.log(eventHandler)
     this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
   },
   watch: {
@@ -140,19 +141,24 @@ export default {
       this.orderGenerator = await neo.orderGenerator()
     },
     async simProduction () {
+      // initialize process bar variables
       this.value = 0
       this.value2 = 0
       this.value3 = 0
+      this.max = 0
+      this.max2 = 0
+      this.max3 = 0
+
       const orderObj = await this.orderGenerator.next()
       this.currentOrder = orderObj.value
       console.log('current order: ', this.currentOrder)
-      // initialize assemblies and PMS of the current order before minting token, returning generator
-      // this.set3rdPartyApproval(this.actors[1], true)
-      // this.set3rdPartyApproval(this.actors[2], true)
+
+      // initialize assemblies and PMS of the current order before minting token, returning generator that load item in corresponding area
       this.loadP1 = await this.initP1()
       this.loadP2 = await this.initP2()
       this.loadP3 = await this.initP3()
-      // start minting process, successful mint will update 'this.value'(in the function 'updateTokenRelation'), which triggers 'loadNextP1' function
+      // console.log(this.getPmChildrenTokenIDs(this.p2PMs[0], this.assemblyItems))
+      // start minting process, successful mint will update 'this.value'(in the function 'updateTokenRelation'), which triggers 'loadNextP1' function in watch property.
       // this.startCraftProcess('p2')
       const start = await this.loadP1.next().value
       this.nextItemP1 = this.loadP1.next(start)
@@ -167,6 +173,18 @@ export default {
       // const start = await this.loadP1.next().value
       // this.nextItemP1 = this.loadP1.next(start)
       // console.log('this2: ', this)
+    },
+    async initP2 () {
+      this.p2PMs = await neo.getPMsByOrderAndArea(this.currentOrder, 'p2')
+      const craftPool = this.p2PMs.filter(pm => pm.tokenID === null)
+      this.max2 = craftPool.length
+      return this.setUpCraft(craftPool)(this, 'p2')
+    },
+    async initP3 () {
+      this.p3PMs = await neo.getPMsByOrderAndArea(this.currentOrder, 'p3')
+      const craftPool = this.p3PMs.filter(pm => pm.tokenID === null)
+      this.max3 = craftPool.length
+      return this.setUpCraft(craftPool)(this, 'p3')
     },
     async loadNextP1 () {
       console.group('Minting State')
@@ -212,18 +230,6 @@ export default {
           .cacheSend(allTokens, qty, 1, 'uri/path', this.actors[2], serialNumber, { gas: gas, from: this.actors[2] })
       }
     },
-    async initP2 () {
-      this.p2PMs = await neo.getPMsByOrderAndArea(this.currentOrder, 'p2')
-      const craftPool = this.p2PMs.filter(pm => pm.tokenID === null)
-      this.max2 = craftPool.length
-      return this.setUpCraft(craftPool)(this, 'p2')
-    },
-    async initP3 () {
-      this.p3PMs = await neo.getPMsByOrderAndArea(this.currentOrder, 'p3')
-      const craftPool = this.p3PMs.filter(pm => pm.tokenID === null)
-      this.max3 = craftPool.length
-      return this.setUpCraft(craftPool)(this, 'p3')
-    },
     async transferToNextArea () {
       // update token info in neo4j
       console.log('Starting tranferring tokens...')
@@ -233,7 +239,7 @@ export default {
       //  tokens transferred to P2
       const tokensToP2 = this.p2PMs.map(pm =>
         pm.children.map(child =>
-          child.assemblyUID)).flat()// mapping the children properties(array of objects) of every PM to an array of assemblyUIDs
+          child.assemblyUID)).flat()// mapping the children properties(array of assemblyUIDS) of every PM to an array of assemblyUIDs
         .map(a => this.assemblyItems
           .filter(e =>
             e.assemblyUID === a).map(a =>
@@ -287,17 +293,6 @@ export default {
         .contracts.APTSC
         .methods.craft
         .cacheSend(tokens, qtys, 1, 'uri/path', actor, serialNumber, { gas: gas, from: actor })
-      // this.p2PMs.forEach(pm => {
-      //   const serialNumber = pm.pmUID
-      //   const inIds = pm.children.map(child => this.assemblyItems.filter(a => a.assemblyUID === child.assemblyUID).tokenID)
-      //   console.log('inIds P2: ', inIds)
-      //   const inQtys = Array(inIds.length).fill(1)
-      //   const gas = 250000 * inIds.length / 10
-      //   this.drizzleInstance
-      //     .contracts.APTSC
-      //     .methods.craft
-      //     .cacheSend(inIds, inQtys, 1, 'uri/path', this.actors[1], serialNumber, { gas: gas, from: this.actors[1] })
-      // })
     },
     async createTokenNode (tokenID, tokenSupply) {
       return await neo.createToken(tokenID, tokenSupply)
@@ -309,10 +304,22 @@ export default {
         await neo.updateAssemblyTokensOfOrder(this.currentOrder, this.attachToken, bm)
         this.value += 1
       } else if (actor === this.actors[1]) {
-        await neo.updatePmTokensOfOrder(this.currentOrder, this.attachToken, 'p2', bm)
+        const attachToken = this.attachToken.map(item => {
+          const pmUID = item.serialNumber
+          const pm = this.p2PMs.find(pm => pm.pmUID === pmUID)
+          const tokenIDs = this.getPmChildrenTokenIDs(pm, this.assemblyItems)
+          return { children: tokenIDs, ...item }
+        })
+        await neo.updatePmTokensOfOrder(this.currentOrder, attachToken, 'p2', bm)
         this.value2 += 1
       } else if (actor === this.actors[2]) {
-        await neo.updatePmTokensOfOrder(this.currentOrder, this.attachToken, 'p3', bm)
+        const attachToken = this.attachToken.map(item => {
+          const pmID = item.serialNumber
+          const pm = this.p3PMs.find(pm => pm.pmID === pmID)
+          const tokenIDs = this.getPmChildrenTokenIDs(pm, this.assemblyItems)
+          return { children: tokenIDs, ...item }
+        })
+        await neo.updatePmTokensOfOrder(this.currentOrder, attachToken, 'p3', bm)
         this.value3 += 1
       }
     },
@@ -389,14 +396,11 @@ export default {
         .methods.setApprovalForAll
         .cacheSend(operator, approved, { gas: 60000, from: owner })
     },
-    active (key) {
-      return key === this.currentkey
+    getPmChildrenTokenIDs (pm, ass) {
+      return pm.children.map(child => ass.find(a => a.assemblyUID === child.assemblyUID).tokenID)
     },
-    // show (key) {
-    //   return key - this.ckey < 15
-    // },
     createTimeStamp () {
-      const date = new Date().toJSON() // e.x: "2020-09-01T13:17:29.468Z"
+      const date = new Date().toJSON() // format: "2020-09-01T13:17:29.468Z"
       return date.slice(0, date.indexOf('.'))
     },
     txHash () {

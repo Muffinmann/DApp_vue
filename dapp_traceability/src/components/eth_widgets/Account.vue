@@ -1,20 +1,31 @@
 <template>
-  <b-container header="Actor Account Balances">
-    <ol>
-      <li v-for="(value, key) in accountBalances" v-b-tooltip.hover :title="key" :key="key">{{ addressToMachineName(key) }}: {{ fromWeiToETH(value) }} ETH</li>
-    </ol>
-  </b-container>
+  <b-card no-body class="mb-1">
+    <b-card-header header-tag="header" class="p-1" role="tab">
+      <b-button block v-b-toggle.accordion-1>Acounts Info</b-button>
+    </b-card-header>
+    <b-collapse id="accordion-1" accordion="my-accordion" role="tabpanel">
+      <b-card-body>
+        <b-list-group>
+          <b-list-group-item v-for="a in accounts" v-b-tooltip.hover :title="a.address" :key="accounts.indexOf(a)"><small>{{ addressToMachineName(a.address) }}: {{ fromWeiToETH(a.balance) }} ETH</small></b-list-group-item>
+        </b-list-group>
+      </b-card-body>
+    </b-collapse>
+  </b-card>
 </template>
 <script>
-import { mapGetters } from 'vuex'
+import app from '@/web3Wrapper.js'
 export default {
   name: 'Account',
+  data () {
+    return {
+      accounts: ''
+    }
+  },
   created () {
-
+    this.init()
   },
   computed: {
     // ...mapGetters('accounts', ['activeAccount', 'activeBalance']), // This is equal to: activeAccount () { return this.$store.getters['accounts/activeAccount'] }
-    ...mapGetters('drizzle', ['drizzleInstance']),
     accountBalances () {
       console.log('STORE===>', this.$store)
       const accountBalances = {}
@@ -28,6 +39,10 @@ export default {
 
   },
   methods: {
+    async init () {
+      const accounts = await app.accounts()
+      this.accounts = accounts.slice(0, -2)
+    },
     addressToMachineName (address) {
       const mapTable = {
         '0x9d56414F2218e4F33d474ad29A643DF9adB01F73': 'P1',
@@ -38,7 +53,7 @@ export default {
       return mapTable[address]
     },
     fromWeiToETH (balance) {
-      return this.drizzleInstance.web3.utils.fromWei(balance, 'ether')
+      return app.convertFromWei(balance, 'ether')
     }
   }
 }

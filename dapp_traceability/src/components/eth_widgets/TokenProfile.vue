@@ -1,90 +1,80 @@
 <template>
-  <b-container>
+  <b-col cols="4">
+
     <b-input-group>
         <b-form-input v-model="tkID" placeholder="Enter Token ID"></b-form-input>
-        <b-button @click="tokenProfile">Submit</b-button>
+        <b-button :disabled="!tkID" v-b-toggle.sidebar-1 @click="tokenProfile">Token Profile</b-button>
     </b-input-group>
-    <div v-if="tkSN">
-      <div>Serial Number: {{ tkSN }}</div>
-      <div>Status: {{ tkST }}</div>
-      <div>URI: {{ tkURI }}</div>
-      <div>Controller: {{ tkCtrl }}</div>
-      <div>token Balance: {{ tkBl }}</div>
-    </div>
-  </b-container>
+
+    <b-sidebar id="sidebar-1" title="Token Profile" shadow>
+      <div class="px-3 py-2">
+
+        <b-img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/330px-Ethereum-icon-purple.svg.png" fluid thumbnail></b-img>
+
+        <div v-show="loading">
+          <b-spinner class="my-3" label="Loading..."></b-spinner>
+          <p>Fetching data from blockchain...</p>
+        </div>
+
+        <b-card :title="'Token: '+tkID" v-show="!loading">
+          <b-card-header header-tag="header" class="p-1" role="tab" v-for="(v,k) in fields" :key="k">
+            <b-button block v-b-toggle="'collapse-'+k" >{{k}}<b-badge variant="dark">{{v.length}}</b-badge></b-button>
+          <b-collapse :id="'collapse-'+k">
+            <b-list-group>
+              <b-list-group-item v-for="(val,key) in v" :key="key"><small>{{ val }}</small></b-list-group-item>
+            </b-list-group>
+          </b-collapse>
+          </b-card-header>
+        </b-card>
+      </div>
+    </b-sidebar>
+
+  </b-col>
 </template>
 <script>
-import { mapGetters } from 'vuex'
-
+import app from '@/web3Wrapper.js'
 export default {
   name: 'TokenProfile',
   data () {
     return {
+      fields: {
+        SerialNumber: '',
+        Status: '',
+        URI: '',
+        Controller: '',
+        TokenBalance: ''
+      },
       tkID: '',
-      tkSN: '',
-      tkST: '',
-      tkURI: '',
-      tkCtrl: '',
-      tkBl: '',
-      web3Contract: {}
+      loading: false
     }
   },
-  created () {
-
-  },
-  mounted () {
-    this.createWeb3Contract()
-  },
-  watch: {
-    tkID: 'registerContract'
-  },
-  computed: {
-    ...mapGetters('contracts', ['getContractData']),
-    ...mapGetters('drizzle', ['drizzleInstance'])
-  },
   methods: {
-    createWeb3Contract () {
-    /**
-    * the web3 contract object in drizzle has not every web3 function, such as
-    * 'getPastEvents', thus, here we create an original web3 contract object.
-    */
-      const web3 = this.drizzleInstance.web3
-      const myContract = this.drizzleInstance.contracts.APTSC
-      this.web3Contract = new web3.eth.Contract(myContract.abi, myContract.address)
-    },
-    tokenProfile () {
+    async tokenProfile () {
       const options = {
         filter: { _id: this.tkID },
         fromBlock: 0,
         toBlock: 'latest'
       }
-      this.web3Contract.getPastEvents('serialNumber', options, (e, event) => {
-        this.tkSN = event.map(el => el.returnValues._serialNumber).join('-->')
-      })
-      this.web3Contract.getPastEvents('status', options, (e, event) => {
-        console.log('status: ', event)
-        this.tkST = event.map(el => el.returnValues._status).join('-->')
-      })
-      this.web3Contract.getPastEvents('URI', options, (e, event) => {
-        console.log('URI: ', event)
-        this.tkURI = event.map(el => el.returnValues._value).join('-->')
-      })
-      this.web3Contract.getPastEvents('controllerUpdate', options, (e, event) => {
-        console.log('controllerUpdate: ', event)
-        this.tkCtrl = event.map(el => el.returnValues._updatedAddress).join('-->')
-      })
-      // this.registerContract('0x9d56414F2218e4F33d474ad29A643DF9adB01F73', this.tkID)
-      this.tkBl = this.getContractData({
-        contract: 'APTSC',
-        method: 'balanceOf'
-      })
-    },
-    registerContract () {
-      this.$store.dispatch('drizzle/REGISTER_CONTRACT', {
-        contractName: 'APTSC',
-        method: 'balanceOf',
-        methodArgs: ['0x9d56414F2218e4F33d474ad29A643DF9adB01F73', this.tkID]
-      })
+      this.loading = true
+
+      const sn = await app.getPastEvents('serialNumber', options)
+      this.fields.SerialNumber = sn.map(e => e.returnValues._serialNumber)
+
+      const st = await app.getPastEvents('status', options)
+      this.fields.Status = st.map(e => e.returnValues._status)
+
+      const uri = await app.getPastEvents('URI', options)
+      this.fields.URI = uri.map(e => e.returnValues._value)
+
+      const ctrl = await app.getPastEvents('controllerUpdate', options)
+      const ctrlNoDup = Array.from(new Set(ctrl.map(el => el.returnValues._updatedAddress)))
+      const bl = await Promise.all(ctrlNoDup.map(c => app.balanceOfTokenByOwner(this.tkID, c)))
+      console.log('bl: ', bl)
+      this.fields.Controller = ctrlNoDup
+      this.fields.TokenBalance = bl
+
+      this.loading = false
+      // app.balanceOfTokenByOwner(tkID, )
     }
   }
 }

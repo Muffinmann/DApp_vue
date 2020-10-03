@@ -3005,7 +3005,7 @@
   },
   "networks": {},
   "schemaVersion": "3.2.0",
-  "updatedAt": "2020-06-15T12:57:12.290Z",
+  "updatedAt": "2020-09-17T08:21:59.043Z",
   "devdoc": {
     "details": "See https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1155.md Note: The ERC-165 identifier for this interface is 0xd9b67a26.",
     "methods": {

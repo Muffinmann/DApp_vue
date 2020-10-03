@@ -1,5 +1,16 @@
 <template>
   <b-col cols="6">
+    <Area
+      :currentOrder="currentOrder"
+      :actor="actor"
+      area="p1"
+      :isSelectable="true"
+      :fields="assemblyFields"
+      :items="assemblyItems"
+      :itemDetails="itemDetails"
+      :mintFunc="mintFunc"
+      :detachFunc="detachFunc"
+    />
     <b-container>
         <h2 v-b-tooltip :title="actor"><b>P1 Area</b></h2>
         <p>Current Order: {{currentOrder}} | Product: {{ currentOrder ? 'wh' + currentOrder.slice(1): null }}</p>
@@ -54,17 +65,21 @@
         <b-button class="mx-3" @click="detachAllTokens">Detach All Tokens</b-button>
         <b-button class="mx-3" @click="transferToken">Transfer Token</b-button>
         <b-button class="mx-3" @click="approveControl">Approve Control</b-button>
-
+        <p>{{txHash()}}</p>
     </b-container>
   </b-col>
 </template>
 
 <script>
 import neo from '@/neo4jAPI.js'
+import Area from '@/components/templates/Area.vue'
 import { mapGetters } from 'vuex'
 export default {
   name: 'Station',
   props: ['actor'],
+  components: {
+    Area
+  },
   data () {
     return {
       isBusy: false,
@@ -75,6 +90,7 @@ export default {
           label: 'Assembly ID',
           sortable: true
         },
+        'action',
         'tokenID',
         'tokenSupply'
       ],
@@ -89,7 +105,7 @@ export default {
     }
   },
   mounted () {
-    /* const eventHandler = ({ contractName, eventName, data }) => {
+    const eventHandler = ({ contractName, eventName, data }) => {
       if (eventName === 'TransferSingle' && data._operator === this.actor) {
         console.group('>>> P1 TransferSingle <<<')
         console.log(data)
@@ -116,8 +132,8 @@ export default {
         console.log('transferBatch: ', data)
         // this.updateTokenSupply(data._ids, data._values)
       }
-    } */
-    // this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
+    }
+    this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
   },
   computed: {
     ...mapGetters('drizzle', ['drizzleInstance']),
@@ -130,6 +146,12 @@ export default {
     },
     autoRefresh () {
       return this.$store.state.autoRefresh
+    },
+    txHash () {
+      return () => {
+        const state = this.drizzleInstance.store.getState()
+        return Array.from(new Set(state.contracts.APTSC.events.map(e => e.transactionHash)))
+      }
     }
   },
   watch: {
@@ -138,6 +160,22 @@ export default {
     genStep: 'loadNext'
   },
   methods: {
+    // @para item: the assembly item object
+    itemDetails (item) {
+      const filterOut = ['assemblyID', 'tokenID', 'tokenSupply', '_showDetails']
+      const details = {}
+      const keys = Object.keys(item).filter(key => !filterOut.some(i => i === key)).sort()
+      keys.forEach(k => { details[k] = item[k] })
+      return details
+    },
+    mintFunc (items) {
+      console.log('items: ', items)
+      items.map(i => this.createToken(400, i.assemblyUID))
+    },
+    detachFunc () {
+      console.log('detach func')
+      console.log('this drizzle: ', this.drizzleInstance)
+    },
     async initAssembly () {
       this.toggleBusy('start')
       await this.getAssembly()
@@ -224,6 +262,7 @@ export default {
           this.transferBatch(this.actor, p3Actor[index], tokens, p3Qtys, gas)
         })
       }
+      // TODO: Update request after transfer
       // this.$store.commit('clearRequestPool')
     },
     approveControl () {

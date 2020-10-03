@@ -1,67 +1,49 @@
 <template>
-  <b-container>
-    <div>latest Block Number: {{ latestBlockNumber }}</div>
-    <div>gas price: {{ currentGasPrice }} Gwei</div>
-    <div>Current Nonce: {{ nonce }}</div>
-  </b-container>
+  <b-card no-body class="mb-1">
+    <b-card-header header-tag="header" class="p-1" role="tab">
+      <b-button block v-b-toggle.accordion-2>Blockchain Info</b-button>
+    </b-card-header>
+    <b-collapse id="accordion-2" accordion="my-accordion" role="tabpanel">
+      <b-card-body>
+        <b-list-group>
+          <b-list-group-item><small>latest Block Number: {{ latestBlockNumber }}</small></b-list-group-item>
+          <b-list-group-item><small>gas price: {{ fromWei(gasPrice) }} Gwei</small></b-list-group-item>
+          <b-list-group-item><small><span>Current Nonce: {{ nonce }}</span></small></b-list-group-item>
+        </b-list-group>
+      </b-card-body>
+    </b-collapse>
+  </b-card>
 </template>
 <script>
-import { mapGetters } from 'vuex'
+import app from '@/web3Wrapper.js'
 export default {
   name: 'BlockchainInfo',
   data () {
     return {
       latestBlockNumber: '',
-      currentGasPrice: ''
+      gasPrice: '',
+      nonce: ''
     }
   },
   created () {
-    this.$store.dispatch('drizzle/REGISTER_CONTRACT', {
-      contractName: 'APTSC',
-      method: 'nonce',
-      methodArgs: ''
-    })
+    this.init()
   },
   mounted () {
-    const web3 = this.$store.getters['drizzle/drizzleInstance'].web3
-    const latestBlock = () => {
-      web3.eth.getBlockNumber((err, number) => {
-        if (!err) {
-          console.log('Number: ', number)
-          this.latestBlockNumber = number
-        } else {
-          console.log('Some error occured while getting the latest block: ', err)
-        }
-      })
+    const headerHandler = (data) => {
+      this.latestBlockNumber = data.number
+      this.init()
     }
-    const gasPrice = () => {
-      web3.eth.getGasPrice((err, price) => {
-        if (!err) {
-          console.log('gas $: ', price)
-          this.currentGasPrice = this.fromWei(price, 'Gwei')
-        } else {
-          console.log('Some error occured while getting the current price: ', err)
-        }
-      })
-    }
-    latestBlock()
-    gasPrice()
-    // setInterval(gasPrice, 20000)
-    // setInterval(latestBlock, 20000)
-  },
-  computed: {
-    ...mapGetters('drizzle', ['drizzleInstance']),
-    ...mapGetters('contracts', ['getContractData']),
-    nonce () {
-      return this.getContractData({
-        contract: 'APTSC',
-        method: 'nonce'
-      })
-    }
+    app.subscribeBlockHeader(headerHandler)
   },
   methods: {
-    fromWei (balance, unit) {
-      return this.drizzleInstance.web3.utils.fromWei(balance, unit)
+    async init () {
+      this.latestBlockNumber = await app.mostRecentBlock()
+      this.gasPrice = await app.gasPrice()
+      this.nonce = await app.currentNonce()
+      this.$store.commit('newBlock', { blockNumber: this.latestBlockNumber })
+    },
+    fromWei (balance) {
+      return app.convertFromWei(balance, 'Gwei')
     }
   }
 }

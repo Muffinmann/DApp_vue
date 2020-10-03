@@ -1,5 +1,5 @@
 <template>
-  <b-toast id="create">
+  <b-toast id="toast">
     <template v-slot:toast-title>
       <div class="d-flex flex-grow-1 align-items-baseline">
         <strong class="mr-auto">Toast title</strong>
@@ -13,6 +13,7 @@
 <script>
 import Toasted from 'vue-toasted'
 import Vue from 'vue'
+import app from '@/web3Wrapper.js'
 
 Vue.use(Toasted)
 
@@ -23,26 +24,18 @@ export default {
     }
   },
   mounted () {
-    const contractEventHandler = ({ contractName, eventName, data }) => {
-      if (eventName === 'TransferSingle') {
-        this.toastMsg = `${contractName}|${eventName}:(token:${data._id}|${data._value})---> ${data._to}`
-        // const subOptions = {
-        //   toaster: 'b-toaster-top-right',
-        //   title: 'Token Created',
-        //   autoHideDelay: 1500
-        // }
-        // this.$bvToast.toast(display, subOptions)
-        this.$bvToast.show('create')
-      } else if (eventName === 'TransferBatch') {
-        this.toastMsg = `${eventName}:(token:${data._ids})---> ${data._to}`
-        this.$bvToast.show('create')
-      } else if (eventName === 'controllerUpdate') {
-        // console.log('controllerUpdate', data)
-        this.toastMsg = `${eventName}:(token:${data._id})---> ${data._updatedAddress}`
-        this.$bvToast.show('create')
-      }
-    }
-    this.$drizzleEvents.$on('drizzle/contractEvent', payload => { contractEventHandler(payload) })
+    app.subscribeEvent('TransferSingle', data => {
+      this.toastMsg = `new Token minted: (token ${data._id}|${data._value})---> ${data._to}`
+      this.$bvToast.show('toast')
+    })
+    app.subscribeEvent('controllerUpdate', data => {
+      this.toastMsg = `controller updated: (token ${data._id}|${data._type})---> ${data._updatedAddress}`
+      this.$bvToast.show('toast')
+    })
+    // app.subscribeEvent('TransferBatch', data => {
+    //   this.toastMsg = `new Token minted: (token ${data._id}|${data._value})---> ${data._to}`
+    //   this.$bvToast.show('toast')
+    // })
   }
 }
 </script>

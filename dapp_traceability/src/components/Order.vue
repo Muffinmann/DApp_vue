@@ -1,34 +1,25 @@
 <template>
-  <b-container>
-    <!-- <b-table
-      ref="OrderList"
-      show empty small
-      selectable
-      sticky-header="300px"
-      select-mode="single"
-      @row-selected="onRowSelected"
-      :fields="fields"
-      :items="orders"
-    >
-    </b-table> -->
-    <b-form-select v-model="selectOrder" :options="orders"></b-form-select>
-    <div>Selected: {{ selectOrder }}</div>
-  </b-container>
+  <b-col cols="4">
+    <b-card title="Current Order">
+      <b-form-select v-model="selectOrder" :options="orders"></b-form-select>
+      <b-list-group>
+        <b-list-group-item><small> ProductID: {{ selectOrder ? `wh${selectOrder.slice(1)}` : null }}</small></b-list-group-item>
+        <b-list-group-item><small>ProductToken: {{productToken}}</small></b-list-group-item>
+      </b-list-group>
+    </b-card>
+  </b-col>
 </template>
 <script>
 import neo from '@/neo4jAPI.js'
 export default {
+  prop: {
+    refreshTrigger: Boolean
+  },
   data () {
     return {
-      // fields: [
-      //   {
-      //     key: 'name',
-      //     sortable: true,
-      //     sortDirection: 'asc'
-      //   }
-      // ],
       orders: [{ value: null, text: 'Please select an order', disabled: true }],
-      selectOrder: null
+      selectOrder: null,
+      productToken: null
     }
   },
   created () {
@@ -40,33 +31,22 @@ export default {
     //   .then(() => session.close())
   },
   watch: {
-    selectOrder: 'onRowSelected'
+    selectOrder: 'onSelected',
+    refreshTrigger: 'refresh'// TODO: use store to trigger refresh
   },
   methods: {
-    onRowSelected () {
-      // this.selectOrder = o[0].order
-      this.$store.commit('selectOrder', this.selectOrder)
+    async refresh () {
+      const [t] = await neo.getProductToken(this.selectOrder)
+      this.productToken = t ? t.properties.tokenID : null
     },
-    /**
-    * Neo4j functions *
-    */
+    onSelected () {
+      this.$store.commit('onOrderSelected', { order: this.selectOrder })
+      this.refresh()
+    },
     async retrieveOrder () {
-      // const result = tx.run('MATCH (o:Order) return o')
       const orders = await neo.getAllOrders()
       this.orders = [...orders, ...this.orders]
-      // return result
-      // result.subscribe({
-      //   onNext: record => {
-      //     const order = record.get('o').properties
-      //     this.orders.push({ value: order.orderID, text: order.orderID, order: order.orderID })
-      //   }
-      // })
     }
-    // getOrder () {
-    //   getAllOrdersPromise().then((orders) => {
-    //     this.orders = [...orders, ...this.orders]
-    //   })
-    // }
   }
 }
 </script>

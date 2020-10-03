@@ -4,7 +4,7 @@
       <h2 v-b-tooltip :title="actor">{{ area.toUpperCase() }} Area</h2>
       <p>Current Order: {{currentOrder}}| Product: {{ currentOrder ? 'wh' + currentOrder.slice(1): null }}</p>
       <b-progress :max="genMax" animated>
-        <b-progress-bar :value="genStep" variant="info" :label="`${((genStep / genMax) * 100).toFixed(1)}% |P1`"></b-progress-bar>
+        <b-progress-bar :value="genStep" variant="info" :label="`${((genStep / genMax) * 100).toFixed(1)}% |${area.toUpperCase()}`"></b-progress-bar>
       </b-progress>
       <b-input-group size="sm">
             <b-form-input
@@ -42,7 +42,8 @@
       <template v-slot:row-details="row">
         <b-card>
           <ul>
-            <li v-for="(value, key) in row.item.children" :key="key">{{ value.assemblyID }}: {{ value.assemblyUID }} </li>
+            <li v-for="(value, key) in row.item.children" :key="key">
+            {{ value.assemblyID }}: {{ value.assemblyUID }} </li>
           </ul>
         </b-card>
       </template>
@@ -52,6 +53,7 @@
       <b-button class="mx-2" @click="detachToken">Detach Token</b-button>
       <b-button v-if="area==='p2'" class="mx-2" @click="transferTokenToNext">Transfer Token</b-button>
       <b-button v-if="area==='p3'" class="mx-2" @click="finalMount">Final Mount</b-button>
+      <b-button @click="getChildrenToken('P4D200426580FL0037_1AC1')">Test</b-button>
     </b-container>
   </b-col>
 </template>
@@ -82,12 +84,14 @@ export default {
     }
   },
   mounted () {
-    /* const eventHandler = ({ contractName, eventName, data }) => {
+    const eventHandler = ({ contractName, eventName, data }) => {
       if (eventName === 'serialNumber' && (data._actor === this.actor)) {
         const tokenID = data._id
         const serialNumber = data._serialNumber
         const regex = /wh_/
         const isFinalMount = regex.test(serialNumber)
+        const children = this.pmItems.find(pm => pm.pmUID ? pm.pmUID === serialNumber : pm.pmID === serialNumber).children
+        const childrenTokenIDs = children.map(child => child.assemblyUID).map(uid => this.$store.getters.getAssemblyToken(uid).tokenID)
         if (isFinalMount) {
           console.log('Product token: ', tokenID)
           const productID = 'wh' + this.currentOrder.slice(1)
@@ -98,12 +102,13 @@ export default {
           this.attachToken.push({
             serialNumber: serialNumber,
             tokenID: tokenID,
-            timeStamp: timeStamp
+            timeStamp: timeStamp,
+            children: childrenTokenIDs
           })
-          console.group(`>>>SERIAL NUMBER ${this.area}<<<`)
-          console.log('Serial Number: ', serialNumber)
-          console.log('attachToken: ', this.attachToken)
-          console.groupEnd()
+          // console.group(`>>>SERIAL NUMBER ${this.area}<<<`)
+          // console.log('Serial Number: ', serialNumber)
+          // console.log('attachToken: ', this.attachToken)
+          // console.groupEnd()
           this.attachTokenToPM()
           this.genStep += 1
         }
@@ -114,7 +119,7 @@ export default {
         // this.updateTokenSupply(data._ids, data._values)
       }
     }
-    this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) }) */
+    this.$drizzleEvents.$on('drizzle/contractEvent', payload => { eventHandler(payload) })
   },
   watch: {
     currentOrder: 'initPM',
@@ -131,6 +136,13 @@ export default {
     }
   },
   methods: {
+    getChildrenToken (serialNumber) {
+      console.log('this PMs: ', this.pmItems)
+      const children = this.pmItems.find(pm => pm.pmUID ? pm.pmUID === serialNumber : pm.pmID === serialNumber).children
+      console.log('children: ', children)
+      const childrenTokenIDs = children.map(child => child.assemblyUID).map(uid => this.$store.getters.getAssemblyToken(uid).tokenID)
+      console.log('childrenTokenIDs: ', childrenTokenIDs)
+    },
     async initPM () {
       this.toggleBusy('start')
       await this.retrievePM()
@@ -269,6 +281,7 @@ export default {
       if (updated) { this.$store.commit('autoRefresh') }
     },
     async attachTokenToPM () {
+      console.log('attachToken: ', this.attachToken)
       await neo.updatePmTokensOfOrder(this.currentOrder, this.attachToken, this.area)
       this.retrievePM()
     },

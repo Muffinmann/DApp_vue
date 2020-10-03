@@ -20,7 +20,7 @@ const initVerification = async function () {
     await driver.verifyConnectivity()
     console.log('Driver created')
   } catch (error) {
-    console.log(`connectivity verification failed. ${error}`)
+    console.error(`connectivity verification failed. ${error}`)
   }
 }
 initVerification()
@@ -66,7 +66,7 @@ export default {
     const query = tx => {
       const result = tx.run(
         'MATCH(o:Order{orderID:$orderID})-[:CO_MAPPING_ORDER]-()-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
-        'WITH DISTINCT o,aid, auid ' +
+        'WITH DISTINCT aid, auid ' +
         'OPTIONAL MATCH (auid)-[:HAS_WUID]-(t:Token) ' +// -[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o)
         'RETURN t,auid,aid', { orderID: orderID })
       result.subscribe({
@@ -79,8 +79,12 @@ export default {
       })
     }
     const session = driver.session()
-    await session.readTransaction(query).then(() => session.close())
-    return items
+    try {
+      await session.readTransaction(query).then(() => session.close())
+      return items
+    } catch (err) {
+      console.error('Getting Assemblies failed: ', err)
+    }
   },
   createToken: async function (tokenID, tokenSupply) {
     const query = (tx, tokenID, tokenSupply) => {
@@ -94,27 +98,26 @@ export default {
         .then(() => session.close())
       return bookmark
     } catch (err) {
-      console.log('Creating Token Node failed: ', err)
+      console.error('Create Token Node failed: ', err)
     }
   },
-  // @PARAM tokens: a list of objects having properties:
+  // @PARAM tokenObj: an Array of object having properties:
   // { serialNumber: String, tokenID: String, tokenSupply: Int, timeStamp: String }
-  updateAssemblyTokensOfOrder: async function (orderID, tokens, savedBookmarks) {
-    const tkDefID = 'tk' + orderID.slice(orderID.indexOf('_'))
-    const query = (tx, tokens, tkDefID) => {
+  updateAssemblyTokens: async function (tokenObj) {
+    const query = (tx, tokenObj) => {
       return tx.run('UNWIND $items as item ' +
-            'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly), (t:Token{tokenID: item.tokenID}) ' +
-            'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t)-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokens, tkDefID: tkDefID })
+            'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
+            'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token{tokenID: item.tokenID, tokenSupply: item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokenObj })
       // return tx.run('UNWIND $items as item ' +
       //       'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly), (t:Token{tokenID: item.tokenID}) ' +
       //       'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokens, tkDefID: tkDefID })
       // + 'WITH t ' + 'MATCH (tk:TK{tokenDefinitionID:$tkDefID}) ' + 'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)'
     }
-    const session = driver.session({ bookmarks: savedBookmarks })
+    const session = driver.session()
     try {
-      await session.writeTransaction(tx => query(tx, tokens, tkDefID)).then(() => session.close())
+      await session.writeTransaction(tx => query(tx, tokenObj)).then(() => session.close())
     } catch (err) {
-      console.log('Update Assembly Token failed: ', err)
+      console.error('Update Assembly Token failed: ', err)
     }
     return true
   },
@@ -196,10 +199,7 @@ export default {
   //   await session.writeTransaction((tx) => query(tx, trans)).then(() => session.close())
   //   return true
   // },
-  // @DESCRIB: attach crafted token to PM and update the supply of assembly tokens
-  // @PARAM tokens: a list of objects containing properties as:
-  // { serialNumber: String, tokenID: String, timeStamp: String, children: Array}
-  updatePmTokensOfOrder: async function (orderID, tokens, area, savedBookmarks) {
+  updatePmTokensOfOrder: async function (orderID, tokens, area) {
     const p2query = 'UNWIND $tokens as token ' +
           'MATCH (b:pmUID {pmUID: token.serialNumber})-[:IS_C_UID]-(a:PM) ' +
           'MERGE (a)-[:HAS_TOKEN{timeStamp: token.timeStamp}]->(t:Token {tokenID: token.tokenID})-[:HAS_PMUID{timeStamp: token.timeStamp}]->(b) ' +
@@ -227,8 +227,51 @@ export default {
         return tx.run(p3query, { orderID: orderID, tokens: tokens })
       }
     }
-    const session = driver.session({ bookmarks: savedBookmarks })
+    const session = driver.session()
     await session.writeTransaction(tx => query(tx, orderID, tokens)).then(() => session.close())
+    return true
+  },
+  updateProductTokenOfOrder: async function (orderID, token) {
+    const query = (tx, orderID, token) => {
+      return tx.run(
+        'MATCH (o:Order{orderID: $orderID})-[:CO_MAPPING_ORDER]-(p:Product) ' +
+        'MERGE (o)-[:CO_MAPPING_TOKEN{timeStamp: $token.timeStamp}]->(t:Token{tokenID:$token.tokenID})<-[:HAS_TOKEN{timeStamp: $token.timeStamp}]-(p)' +
+        'WITH t UNWIND $token.children as child ' +
+        'MATCH  (c:Token{tokenID: child}) ' +
+        'MERGE (t)-[:HAS_CHILD{amount:1}]-(c) ' +
+        'ON CREATE SET c.tokenSupply = c.tokenSupply - 1 ', { orderID: orderID, token: token })
+    }
+    const session = driver.session()
+    try {
+      await session.writeTransaction(tx => query(tx, orderID, token)).then(() => session.close())
+    } catch (err) {
+      console.error('Update Product Token failed: ', err)
+    }
+    return true
+  },
+  async getProductToken (orderID) {
+    const query = async (tx) => {
+      const rs = tx.run('OPTIONAL MATCH (o:Order{orderID: $orderID})-[:CO_MAPPING_ORDER]-(p:Product)-[:HAS_TOKEN]-(t) RETURN t', { orderID: orderID })
+      const result = await rs
+      return result.records.map(r => r.get('t'))
+    }
+    try {
+      const session = driver.session()
+      const r = await session.readTransaction(query)
+      await session.close()
+      return r
+    } catch (err) {
+      console.error('get Product Token failed: ', err)
+    }
+  },
+  async detachToken (tokens) {
+    const query = (tx, tokens) => {
+      return tx.run('UNWIND $tokens as token ' +
+      ' MATCH (t:Token{tokenID:token}) ' +
+      'DETACH DELETE t', { tokens: tokens })
+    }
+    const session = driver.session()
+    await session.writeTransaction(tx => query(tx, tokens)).then(() => session.close())
     return true
   }
 }
