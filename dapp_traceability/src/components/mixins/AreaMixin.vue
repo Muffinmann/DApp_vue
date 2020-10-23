@@ -1,5 +1,5 @@
 <script>
-// import app from '@/web3Wrapper.js'
+// import app from '@/web3Facade.js'
 export default {
   methods: {
     multipleItemFilter (row, filter) {
@@ -36,8 +36,8 @@ export default {
       let pool
       if (this.filter) {
         pool = items
-          .filter(i => this.multipleItemFilter(i, this.filter))
-          .filter(i => i.tokenID === null)
+          .filter(i => this.multipleItemFilter(i, this.filter) && i.tokenID === null)
+          // .filter(i => i.tokenID === null)
       } else {
         pool = items
           .filter(i => i.tokenID === null)

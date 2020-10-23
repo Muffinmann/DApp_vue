@@ -13,7 +13,7 @@
 <script>
 import Toasted from 'vue-toasted'
 import Vue from 'vue'
-import app from '@/web3Wrapper.js'
+import app from '@/js/web3Facade.js'
 
 Vue.use(Toasted)
 

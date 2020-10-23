@@ -1,5 +1,5 @@
 import neo4j from 'neo4j-driver'
-import config from '@/neo4jDriver.config.js'
+import config from '@/js/neo4jDriver.config.js'
 const driver = ({ bolt, user, password, ...args }) => {
   return neo4j.driver(bolt, neo4j.auth.basic(user, password), args)
 }

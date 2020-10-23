@@ -60,7 +60,7 @@
 </template>
 
 <script>
-import neo from '@/neo4jAPI.js'
+import neo from '@/js/neo4jAPI.js'
 import { mapGetters } from 'vuex'
 export default {
   name: 'Station',

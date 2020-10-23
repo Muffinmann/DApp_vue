@@ -24,7 +24,7 @@
 <script>
 // @ is an alias to /src
 // import options from '@/ethOptions.js'
-// import app from '@/web3Wrapper.js'
+// import app from '@/web3Facade.js'
 // import neo from '@/neo4jAPI.js'
 // import AreaMixin from '@/components/mixins/AreaMixin.vue'
 import Account from '@/components/eth_widgets/Account.vue'

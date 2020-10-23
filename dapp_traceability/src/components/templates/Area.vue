@@ -73,11 +73,23 @@ import AreaMixin from '@/components/mixins/AreaMixin.vue'
 export default {
   mixins: [AreaMixin],
   props: {
-    busy: Boolean,
-    step: [String, Number],
-    maxStep: [String, Number],
+    busy: {
+      type: Boolean,
+      default: false
+    },
+    step: {
+      type: [String, Number],
+      default: 0
+    },
+    maxStep: {
+      type: [String, Number],
+      default: 100
+    },
     currentOrder: String,
-    crossFilter: [String, Array],
+    crossFilter: {
+      type: [String, Array],
+      default: ''
+    },
     actor: {
       type: String,
       required: true

@@ -1,4 +1,4 @@
-<template>
+  <template>
   <b-col cols="4">
 
     <b-input-group>
@@ -32,7 +32,7 @@
   </b-col>
 </template>
 <script>
-import app from '@/web3Wrapper.js'
+import app from '@/js/web3Facade.js'
 export default {
   name: 'TokenProfile',
   data () {
@@ -67,10 +67,10 @@ export default {
       this.fields.URI = uri.map(e => e.returnValues._value)
 
       const ctrl = await app.getPastEvents('controllerUpdate', options)
-      const ctrlNoDup = Array.from(new Set(ctrl.map(el => el.returnValues._updatedAddress)))
-      const bl = await Promise.all(ctrlNoDup.map(c => app.balanceOfTokenByOwner(this.tkID, c)))
+      const ctrlNoDuplicate = Array.from(new Set(ctrl.map(el => el.returnValues._updatedAddress)))
+      const bl = await Promise.all(ctrlNoDuplicate.map(c => app.balanceOfTokenByOwner(this.tkID, c)))
       console.log('bl: ', bl)
-      this.fields.Controller = ctrlNoDup
+      this.fields.Controller = ctrlNoDuplicate
       this.fields.TokenBalance = bl
 
       this.loading = false

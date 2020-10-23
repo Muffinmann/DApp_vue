@@ -15,7 +15,7 @@
   </b-card>
 </template>
 <script>
-import app from '@/web3Wrapper.js'
+import app from '@/js/web3Facade.js'
 export default {
   name: 'BlockchainInfo',
   data () {

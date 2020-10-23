@@ -1,7 +1,8 @@
 // TODO: use config file to initialize
 import Web3 from 'web3'
-import options from '@/ethOptions.js'
-class Web3Wrapper {
+import options from '@/js/ethOptions.js'
+
+class Web3Facade {
   constructor ({ networkID, contract, wsUrl }) {
     const contractAddress = contract.networks[networkID].address
     const web3Provider = new Web3.providers.WebsocketProvider(wsUrl)
@@ -10,16 +11,20 @@ class Web3Wrapper {
     this.subscriptions = {}
   }
 
+  wholeWeb3Interface () {
+    return this.web3
+  }
+
   subscribeEvent (eventName, callback) {
-    const eventJsonIterface = this.web3.utils._.find(
+    const eventJsonInterface = this.web3.utils._.find(
       this.contract._jsonInterface,
       i => i.name === eventName && i.type === 'event'
     )
-    const subOptions = { address: this.contract.options.address, topics: [eventJsonIterface.signature] }
+    const subOptions = { address: this.contract.options.address, topics: [eventJsonInterface.signature] }
     const subscription = this.web3.eth.subscribe('logs', subOptions)
       .on('data', log => {
-        console.log('event log: ', log)
-        const eventObj = this.web3.eth.abi.decodeLog(eventJsonIterface.inputs, log.data, log.topics.slice(1))
+        // console.log('event log: ', log)
+        const eventObj = this.web3.eth.abi.decodeLog(eventJsonInterface.inputs, log.data, log.topics.slice(1))
         console.log(`New Event "${eventName}": `, eventObj)
         callback(eventObj)
       })
@@ -37,6 +42,34 @@ class Web3Wrapper {
       .on('error', console.error)
     this.subscriptions.newBlockHeader = subscription
     console.log('subscribed : newBlockHeader')
+  }
+
+  decodeEventLog (eventName, log) {
+    const eventJsonInterface = this.web3.utils._.find(
+      this.contract._jsonInterface,
+      i => i.name === eventName && i.type === 'event'
+    )
+    return this.web3.eth.abi.decodeLog(eventJsonInterface.inputs, log.data, log.topics.slice(1))
+  }
+
+  findEventSig (eventName) {
+    const eventJsonInterface = this.web3.utils._.find(
+      this.contract._jsonInterface,
+      i => i.name === eventName && i.type === 'event'
+    )
+    return eventJsonInterface.signature
+  }
+
+  findContractAddress () {
+    return this.contract.options.address
+  }
+
+  decodeFuncSig (sig) {
+    const funName = this.web3.utils._.find(
+      this.contract._jsonInterface,
+      i => i.signature === sig && i.type === 'function'
+    )
+    return funName ? funName.name : 'unknown'
   }
 
   async accounts () {
@@ -58,16 +91,21 @@ class Web3Wrapper {
   }
 
   async getBlock (blockNumber) {
-    return await this.web3.eth.getBlock(blockNumber)
+    return await this.web3.eth.getBlock(blockNumber, true)
+  }
+
+  async getPastLogs (opt) {
+    return await this.web3.eth.getPastLogs(opt)
   }
 
   getPastEvents (eventName, options) {
-    return new Promise((resolve, reject) => {
-      this.contract.getPastEvents(eventName, options, (err, event) => {
-        if (err) { return reject(err) }
-        resolve(event)
-      })
-    })
+    return await this.contract.getPastEvents(eventName, options)
+    // return new Promise((resolve, reject) => {
+    //   this.contract.getPastEvents(eventName, options, (err, events) => {
+    //     if (err) { return reject(err) }
+    //     resolve(events)
+    //   })
+    // })
   }
 
   async getTxnReceipt (txnHash) {
@@ -139,4 +177,4 @@ class Web3Wrapper {
     })
   }
 }
-export default new Web3Wrapper(options)
+export default new Web3Facade(options)

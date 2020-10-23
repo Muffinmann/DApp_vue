@@ -71,7 +71,7 @@
 </template>
 
 <script>
-import neo from '@/neo4jAPI.js'
+import neo from '@/js/neo4jAPI.js'
 import Area from '@/components/templates/Area.vue'
 import { mapGetters } from 'vuex'
 export default {

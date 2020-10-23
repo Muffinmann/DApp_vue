@@ -10,7 +10,7 @@
   </b-col>
 </template>
 <script>
-import neo from '@/neo4jAPI.js'
+import neo from '@/js/neo4jAPI.js'
 export default {
   prop: {
     refreshTrigger: Boolean

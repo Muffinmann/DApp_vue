@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import neo from '@/neo4jAPI.js'
+import neo from '@/js/neo4jAPI.js'
 import { mapGetters } from 'vuex'
 import Toast from '@/components/Toast.vue'
 

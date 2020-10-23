@@ -49,7 +49,7 @@ module.exports = {
      accounts: 5,
      defaultEtherBalance: 100,
      gas: 850000000,
-    gasPrice: 20000000000, 
+     gasPrice: 20000000000 
     },
 
     development: {
@@ -57,6 +57,12 @@ module.exports = {
      port: 9545,            // Standard Ethereum port (default: none)
      network_id: "*"        // Any network (default: none)
     },
+
+    poanetwork: {
+          host:"127.0.0.1",
+          port:8545,
+          network_id:12345
+        }
 
     // Another network with more advanced options...
     // advanced: {

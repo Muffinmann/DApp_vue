@@ -63,12 +63,12 @@
 </template>
 <script>
 // @ is an alias to /src
-import app from '@/web3Wrapper.js'
-import neo from '@/neo4jAPI.js'
+import app from '@/js/web3Facade.js'
+import neo from '@/js/neo4jAPI.js'
 import AreaMixin from '@/components/mixins/AreaMixin.vue'
 import Area from '@/components/templates/Area.vue'
 import Alert from '@/components/Alert.vue'
-// import { Product } from '@/Model.js'
+import { Order, Product, Module } from '@/js/Model_design1.js'
 export default {
   name: 'About',
   mixins: [AreaMixin],
@@ -142,11 +142,21 @@ export default {
     currentOrder: 'init'
   },
   methods: {
-    // async test () {
-    //   const p = new Product('wh_111')
-    //   console.log('p', p)
-    //   console.log('pd: ', Product.findAll())
-    // },
+    async test () {
+      const o = await Order.find('o_111')
+      const m = await Module.find('580FL0037_1A')
+      // await Assembly.find()
+      // const product = await o.product()
+      // console.log('o ', o)
+      // console.log('product ', await o.product())
+      // console.log('find all...', await Order.findAll())
+      // console.log('find...', await Order.find('o_111'))
+      console.log('kanorder of order...', await o.kanbanOrders)
+      console.log('create product...', await Product.find('wh_111'))
+      console.log('create module...', await Module.find('580FL0037_1A'))
+      console.log('create Assembly...', await m.assemblies)
+      // console.log('modules in product...', await o.product.modules())
+    },
     init () {
       this.initP1()
       this.initP2()
@@ -174,15 +184,15 @@ export default {
       this.p3IsBusy = false
     },
     createToken () {
-      let creationPool
-      if (this.filter) {
-        creationPool = this.p1Items
-          .filter(i => this.multipleItemFilter(i, this.filter))
-          .filter(i => i.tokenID === null)
-      } else {
-        creationPool = this.p1Items
-          .filter(i => i.tokenID === null)
-      }
+      const creationPool = this.constructPool(this.p1Items)
+      // if (this.filter) {
+      //   creationPool = this.p1Items
+      //     .filter(i => this.multipleItemFilter(i, this.filter))
+      //     .filter(i => i.tokenID === null)
+      // } else {
+      //   creationPool = this.p1Items
+      //     .filter(i => i.tokenID === null)
+      // }
       this.p1Step = 0
       this.p1Max = creationPool.length
       console.log('p1Max: ', this.p1Max)
@@ -202,7 +212,7 @@ export default {
         }
         const receipt = app.create(createTokenOpt)
         receipt.then(r => {
-          // console.log('Txn Receipt: ', r)
+          console.log('Txn Receipt: ', r)
           const ts = r.events.TransferSingle.returnValues
           const sn = r.events.serialNumber.returnValues
           const time = this.createTimeStamp()
@@ -232,6 +242,7 @@ export default {
       this.p2Step = 0
       this.p2Max = craftPool.length
       const loader = craftPool.values()
+      const interval = 500
       const run = () => {
         const result = loader.next()
         if (result.done) return
@@ -250,11 +261,11 @@ export default {
 
         receipt.then(r => {
           console.log('craft receipt: ', r)
-          const sn = app.getReceiptEventValues(r, 'serialNumber')
+          const sn = r.events.serialNumber.returnValues
           const time = this.createTimeStamp()
           const tokenObj = {
-            serialNumber: sn.values._serialNumber,
-            tokenID: sn.values._id,
+            serialNumber: sn._serialNumber,
+            tokenID: sn._id,
             timeStamp: time,
             children: inputTokens
           }
@@ -268,7 +279,7 @@ export default {
               }
             })
         })
-        setTimeout(run, 500)
+        setTimeout(run, interval)
       }
       run()
     },
@@ -277,6 +288,7 @@ export default {
       this.p3Step = 0
       this.p3Max = craftPool.length
       const loader = craftPool.values()
+      const interval = 500
       const run = () => {
         const result = loader.next()
         if (result.done) return
@@ -295,11 +307,11 @@ export default {
 
         receipt.then(r => {
           console.log('craft receipt: ', r)
-          const sn = app.getReceiptEventValues(r, 'serialNumber')
+          const sn = r.events.serialNumber.returnValues
           const time = this.createTimeStamp()
           const tokenObj = {
-            serialNumber: sn.values._serialNumber,
-            tokenID: sn.values._id,
+            serialNumber: sn._serialNumber,
+            tokenID: sn._id,
             timeStamp: time,
             children: inputTokens
           }
@@ -313,7 +325,7 @@ export default {
               }
             })
         })
-        setTimeout(run, 500)
+        setTimeout(run, interval)
       }
       run()
     },
@@ -335,10 +347,10 @@ export default {
       receipt.then(r => {
         this.p3Step = Math.floor(this.p3Max / 2)
         console.log('Craft Recipt: ', r)
-        const sn = app.getReceiptEventValues(r, 'serialNumber')
+        const sn = r.events.serialNumber.returnValues
         const time = this.createTimeStamp()
         const token = {
-          tokenID: sn.values._id,
+          tokenID: sn._id,
           timeStamp: time,
           children: tokens
         }
