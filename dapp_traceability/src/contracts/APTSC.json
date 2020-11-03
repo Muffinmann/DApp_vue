@@ -21480,10 +21480,253 @@
       "links": {},
       "address": "0x84C79fca4FC259EB937Dee7d270702Ddd51AfAc1",
       "transactionHash": "0x16cc4e428c7eb4e7dfcef8743d5bb01adafe206dbb8d2462a6449b731439d7c9"
+    },
+    "12345": {
+      "events": {
+        "0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_owner",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "bool",
+              "name": "_approved",
+              "type": "bool"
+            }
+          ],
+          "name": "ApprovalForAll",
+          "type": "event"
+        },
+        "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256[]",
+              "name": "_ids",
+              "type": "uint256[]"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256[]",
+              "name": "_values",
+              "type": "uint256[]"
+            }
+          ],
+          "name": "TransferBatch",
+          "type": "event"
+        },
+        "0xc3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_from",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_to",
+              "type": "address"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_value",
+              "type": "uint256"
+            }
+          ],
+          "name": "TransferSingle",
+          "type": "event"
+        },
+        "0x559172fb31f7ef36dda8e44c48e5e5200be5e7ddb0637fc325dc3d877dd5032a": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "_value",
+              "type": "string"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_operator",
+              "type": "address"
+            }
+          ],
+          "name": "URI",
+          "type": "event"
+        },
+        "0x4f98129815c1f5bcf4492ae1a6bd7f06085d394c6ff03877f69b8359b487209b": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "_type",
+              "type": "string"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_updatedAddress",
+              "type": "address"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256"
+            }
+          ],
+          "name": "controllerUpdate",
+          "type": "event"
+        },
+        "0x517359248e21bdc3f27618171de51bc3c62d50e43ca95248d2e45ec52594e055": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "uint256[]",
+              "name": "_inputIds",
+              "type": "uint256[]"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256[]",
+              "name": "_inputQuantities",
+              "type": "uint256[]"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "_outputId",
+              "type": "uint256"
+            },
+            {
+              "indexed": false,
+              "internalType": "uint256",
+              "name": "_outputQuantity",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_actor",
+              "type": "address"
+            }
+          ],
+          "name": "craftedToken",
+          "type": "event"
+        },
+        "0xb330ea26b663c926a197675228646bb719f91e1aa1ec9a1821da0713527b378f": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "_serialNumber",
+              "type": "string"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_actor",
+              "type": "address"
+            }
+          ],
+          "name": "serialNumber",
+          "type": "event"
+        },
+        "0xcdacca10089be16361c899070d644d01fdcef0eb154d91fd7005d9e448a56250": {
+          "anonymous": false,
+          "inputs": [
+            {
+              "indexed": false,
+              "internalType": "string",
+              "name": "_status",
+              "type": "string"
+            },
+            {
+              "indexed": true,
+              "internalType": "uint256",
+              "name": "_id",
+              "type": "uint256"
+            },
+            {
+              "indexed": true,
+              "internalType": "address",
+              "name": "_actor",
+              "type": "address"
+            }
+          ],
+          "name": "status",
+          "type": "event"
+        }
+      },
+      "links": {},
+      "address": "0x9Be12Be81e425e3d26480609d1EA2668829cBC98",
+      "transactionHash": "0xb260a7569cbc88d62aab01080d83b41d8cf664dcc37e202d4bb02552a9974775"
     }
   },
   "schemaVersion": "3.2.0",
-  "updatedAt": "2020-10-17T20:56:56.768Z",
+  "updatedAt": "2020-11-02T07:42:19.423Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {

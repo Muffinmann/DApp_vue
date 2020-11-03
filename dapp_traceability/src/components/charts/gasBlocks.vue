@@ -2,15 +2,10 @@
   <b-col>
     <h2>Charts</h2>
     <div>
-      <b-form-group label="Update">
-      <b-form-radio-group
-        v-model="useSync"
-        :options="syncOptions"
-        name="radio-inline"
-      ></b-form-radio-group>
-    </b-form-group>
-      <label for="range-1">The latest {{rangeValue}} blocks</label>
-      <b-form-input id="range-1" v-model="rangeValue" type="range" min="5" :max="latestBlockNumber"></b-form-input>
+      <label for="range-1">From Block</label>
+      <b-form-input id="range-1" v-model="fromBlock" type="text"></b-form-input>
+      <label for="range-2">To Block</label>
+      <b-form-input id="range-2" v-model="toBlock" type="text"></b-form-input>
     </div>
     <div ref="main" style="width:1000px; height:600px"></div>
   </b-col>
@@ -24,11 +19,33 @@ export default {
   mixins: [chartmixin],
   data () {
     return {
-      selectFunc: true,
+      fromBlock: 1056,
+      toBlock: 1319,
+      // 0.5s-start: 428, 458, 467, 478, 491, 500, 509, 518, 527, 534, 544, 553, 560, 567, 577
+      // 0.5s-end: 456, 465, 476, 489, 498, 507, 516, 525, 532, 542, 551, 558, 565, 575, 582
+      // block count 15s: [29, 8, 10, 12, 8, 8, 8, 8, 6, 9, 8, 6, 6, 9, 6]
+      // block count 0.5s-10s: [61, 15, 17, 19, 16, 13, 12, 16, 11, 17, 13, 10, 10, 16, 11]
+      // block count 0.3s-10s: [56, 15, 17, 23, 16, 13, 12, 14, 11, 17, 13, 10, 7, 16, 11]
+      // block count 0.2s-10s: [56, 15, 17, 23, 15, 13, 12, 16, 11, 17, 13, 7, 10, 14, 11]
+      // block count 0.1s-10s: [67, 15, 17, 23, 15, 13, 10, 16, 11, 15, 12, 10, 10, 16, 11]
+      // 0.3s-start: 150, 171, 179, 187, 198, 206, 214, 222, 230, 236, 245, 253, 259, 265, 273
+      // 0.3s-end: 169, 177, 185, 196, 204, 212, 220, 228, 234, 243, 251, 257, 263, 271, 277
+      // 0.3s-10s-start: 736, 793, 809, 827, 851, 868, 882, 895, 910, 922, 940, 954, 965, 973, 990
+      // 0.3s-10s-end: 791, 807, 825, 849, 866, 880, 893, 908, 920, 938, 952, 963, 971, 988, 1000
+      // 0.2s-start: 12, 31, 39, 47, 56, 64, 72, 80, 88, 94, 102, 110, 116, 122, 130
+      // 0.2s-end: 29, 37, 45, 54, 62, 70, 78, 86, 92, 100, 108, 114, 120, 128, 134
+      // 0.2s-10s-start: [1056, 1113, 1129, 1147, 1171, 1187, 1201, 1214, 1231, 1243, 1261, 1275, 1283, 1294, 1309]
+      // 0.2s-10s-end: [1111, 1127, 1145, 1169, 1185, 1199, 1212, 1229, 1241, 1259, 1273, 1281, 1292, 1307, 1319]
+      // 0.1s-start: 309, 323, 330, 337, 345, 352, 359, 366, 373, 378, 385, 392, 397, 402, 409,
+      // 0.1s-end: 321, 328, 335, 343, 350, 357, 364, 371, 376, 383, 390, 395, 400, 407, 412,
+      // 0.1s-10s-start: 1365, 1433, 1449, 1467, 1491, 1507, 1521, 1532, 1549, 1561, 1577, 1590, 1601, 1612, 1629
+      // 0.1s-10s-end: [1431, 1447, 1465, 1489, 1505, 1519, 1530, 1547, 1559, 1575, 1588, 1599, 1610, 1627, 1639]
+      // /////////////
+      // 0.3s-start2: 2697 ,2720, 2727, 2736, 2747, 2755, 2763, 2771, 2779, 2785, 2794, 2802, 2808, 2814, 2822
+      // 0.3s-end2: 2718 ,2725, 2734, 2745, 2753, 2761, 2769, 2777, 2783, 2792, 2800, 2806, 2812, 2820, 2826
+
       myChart: null,
       option: null,
-      rangeValue: 10,
-      useSync: true,
       // latestBlockNumber: 3236,
       syncOptions: [
         { text: 'on', value: true },
@@ -39,14 +56,8 @@ export default {
   mounted () {
     this.initChart()
   },
-  computed: {
-    latestBlockNumber () {
-      return this.$store.state.mostRecentBlockNumber
-    }
-  },
   watch: {
-    rangeValue: 'initChart',
-    latestBlockNumber: 'refreshChart'
+    toBlock: 'initChart'
   },
   methods: {
     async getLogs (eventName) {
@@ -90,20 +101,10 @@ export default {
       // const f = this.latestBlockNumber > this.rangeValue * 2 + 1 ? this.latestBlockNumber - this.rangeValue * 2 + 1 : this.latestBlockNumber
       // const blocks = await this.getBlocks(f, this.latestBlockNumber) // Array of block objects
       // console.log('blocks: ', blocks)
-      const blocks = await this.getBlocks(this.latestBlockNumber - this.rangeValue, this.latestBlockNumber)
+      const blocks = await this.getBlocks(this.fromBlock, this.toBlock)
       const blocksReduced = await Promise.all(blocks.map(b => this.reduceBlock(b)))
       // const drawBlocks = blocksReduced.slice(this.rangeValue) // the first 'rangeValue'(default=10) blocks are only used for calculating avg. gas usage
       const drawBlocks = blocksReduced
-      // console.log('blocksReduced: ', blocksReduced)
-      // const latestBlock = await app.getBlock(latestBlockNumber)
-      // const txns = latestBlock.transactions
-      // const receipts = await Promise.all(txns.map(async txn => await app.getTxnReceipt(txn)))
-      // const gasUsage = receipts.map(r => r.gasUsed)
-      // console.group('LATEST BLOCK')
-      // console.log('latest Block: ', latestBlock)
-      // console.log('txn receipt: ', receipts)
-      // console.log('gas Usage: ', gasUsage)
-      // console.groupEnd()
 
       this.myChart = echarts.init(this.$refs.main)
       this.option = {
@@ -183,6 +184,7 @@ export default {
               fontSize: 15
             },
             nameLocation: 'center',
+            axisLabel: { rotate: '45' },
             nameGap: 30,
             boundaryGap: true,
             data: drawBlocks.map(b => b.blockNumber)
@@ -293,23 +295,6 @@ export default {
       }
       this.myChart.setOption(this.option)
     }
-    // updateChartView () {
-    //   const axisData = this.axisData
-    //   var blockTotal = this.option.series[0].data
-    //   var create = this.option.series[0].data
-    //   var data1 = this.option.series[1].data
-    //   data0.shift()
-    //   data0.push(axisData.y0)
-    //   data1.shift()
-    //   data1.push(axisData.y1)
-
-    //   this.option.xAxis[0].data.shift()
-    //   this.option.xAxis[0].data.push(axisData.x0)
-    //   this.option.xAxis[1].data.shift()
-    //   this.option.xAxis[1].data.push(axisData.x1)
-
-    //   this.myChart.setOption(this.option)
-    // }
   }
 }
 </script>

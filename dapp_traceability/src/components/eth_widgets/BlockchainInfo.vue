@@ -30,17 +30,16 @@ export default {
   },
   mounted () {
     const headerHandler = (data) => {
-      this.latestBlockNumber = data.number
-      this.init()
+      this.init(data)
     }
     app.subscribeBlockHeader(headerHandler)
   },
   methods: {
-    async init () {
-      this.latestBlockNumber = await app.mostRecentBlock()
+    async init (data) {
+      this.latestBlockNumber = data ? data.number : await app.mostRecentBlock()
+      this.$store.commit('newBlock', { blockNumber: this.latestBlockNumber })
       this.gasPrice = await app.gasPrice()
       this.nonce = await app.currentNonce()
-      this.$store.commit('newBlock', { blockNumber: this.latestBlockNumber })
     },
     fromWei (balance) {
       return app.convertFromWei(balance, 'Gwei')

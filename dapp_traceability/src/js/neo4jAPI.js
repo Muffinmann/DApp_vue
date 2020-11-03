@@ -126,11 +126,35 @@ export default {
   },
   // @PARAM tokenObj: an Array of object having properties:
   // { serialNumber: String, tokenID: String, tokenSupply: Int, timeStamp: String }
-  updateAssemblyTokens: async function (tokenObj) {
-    const query = (tx, tokenObj) => {
-      return tx.run('UNWIND $items as item ' +
-            'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
-            'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token{tokenID: item.tokenID, tokenSupply: item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokenObj })
+  // updateAssemblyTokens: async function (tokenObjects) {
+  //   // const expression = `MATCH (a:AssemblyUID {assemblyUID: '${serialNumber}'})-[:IS_C_UID]-(b:Assembly)
+  //   // MERGE (b)-[:HAS_TOKEN{timeStamp:'${timeStamp}'}]->(t:Token{tokenID: '${tokenID}', tokenSupply: ${tokenSupply}})-[:HAS_WUID {timeStamp:'${timeStamp}'}]->(a)`
+  //   const query = (tx) => {
+  //     // return tx.run(expression)
+  //     return tx.run('UNWIND $items as item ' +
+  //           'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
+  //           'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token{tokenID: item.tokenID, tokenSupply: item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokenObjects })
+  //     // return tx.run('UNWIND $items as item ' +
+  //     //       'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly), (t:Token{tokenID: item.tokenID}) ' +
+  //     //       'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokens, tkDefID: tkDefID })
+  //     // + 'WITH t ' + 'MATCH (tk:TK{tokenDefinitionID:$tkDefID}) ' + 'MERGE (t)<-[:CONTAINS_TOKEN]-(tk)'
+  //   }
+  //   const session = driver.session()
+  //   try {
+  //     await session.writeTransaction(tx => query(tx)).then(() => session.close())
+  //   } catch (err) {
+  //     console.error('Update Assembly Token failed: ', err)
+  //   }
+  //   return true
+  // },
+  updateAssemblyTokens: async function ({ serialNumber, tokenID, tokenSupply, timeStamp }) {
+    const expression = `MATCH (a:AssemblyUID {assemblyUID: '${serialNumber}'})-[:IS_C_UID]-(b:Assembly)
+            MERGE (b)-[:HAS_TOKEN{timeStamp:'${timeStamp}'}]->(t:Token{tokenID: '${tokenID}', tokenSupply: ${tokenSupply}})-[:HAS_WUID {timeStamp:'${timeStamp}'}]->(a)`
+    const query = (tx) => {
+      return tx.run(expression)
+      // return tx.run('UNWIND $items as item ' +
+      //       'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly) ' +
+      //       'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token{tokenID: item.tokenID, tokenSupply: item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokenObj })
       // return tx.run('UNWIND $items as item ' +
       //       'MATCH (a:AssemblyUID {assemblyUID: item.serialNumber})-[:IS_C_UID]-(b:Assembly), (t:Token{tokenID: item.tokenID}) ' +
       //       'MERGE (b)-[:HAS_TOKEN{timeStamp:item.timeStamp}]->(t:Token {tokenID: item.tokenID, tokenSupply:item.tokenSupply})-[:HAS_WUID {timeStamp:item.timeStamp}]->(a) ', { items: tokens, tkDefID: tkDefID })
@@ -138,7 +162,7 @@ export default {
     }
     const session = driver.session()
     try {
-      await session.writeTransaction(tx => query(tx, tokenObj)).then(() => session.close())
+      await session.writeTransaction(tx => query(tx)).then(() => session.close())
     } catch (err) {
       console.error('Update Assembly Token failed: ', err)
     }
@@ -151,22 +175,22 @@ export default {
       // const query2 = 'MATCH(o:Order{orderID:$orderID})-[:CONTAINS_O_SO]-()-[:LOGS_C_UID]-(pmuid)-[:IS_C_UID]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
       //     'WITH DISTINCT o, pmuid, pmid, aid, auid OPTIONAL MATCH (pmuid)-[:HAS_PMUID]-(t:Token) ' +// -[:CONTAINS_TOKEN]-(:TK)-[:CO_MAPPING_TOKEN]-(o) ' +
       //     'RETURN pmuid, pmid, aid, auid, t'
-      const query2 = 'MATCH (o:Order{orderID:$orderID})-[:CONTAINS_O_SO]-(:SubOrder)-[:LOGS_C_UID]-(pmuid:pmUID)-[:IS_C_UID]-(pm:PM) ' +
-            'WITH pm,pmuid ' +
-            'MATCH (pm)-[:CONTAINS_C_ASSEMBLY]-(a)-[:IS_C_UID]-(auid), (pmuid)-[:HAS_PMUID]-(t) ' +
-            'RETURN pm, a, auid, pmuid, t'
-
+      const expression2 = `MATCH (o:Order{orderID:'${orderID}'})-[:CONTAINS_O_SO]-(:SubOrder)-[:LOGS_C_UID]-(pmuid:pmUID)-[:IS_C_UID]-(pm:PM)
+            WITH pm,pmuid
+            MATCH (pm)-[:CONTAINS_C_ASSEMBLY]-(a)-[:IS_C_UID]-(auid)
+            WITH pm, a, auid,pmuid
+            OPTIONAL MATCH (pmuid)-[:HAS_PMUID]-(t)
+            RETURN pm, a, auid, pmuid, t`
+      const expression3 = `MATCH (:Order{orderID:'${orderID}'})-[:CO_MAPPING_ORDER]-(p)-[:CONTAINS_C_PM]-(pm)-[:CR_MAPPING]-(ws{locationID:'p3'})
+            WITH pm,p
+            MATCH (pm)-[:CONTAINS_C_ASSEMBLY]-(a)-[:IS_C_UID]-(auid)
+            WITH pm, a, auid, p
+            OPTIONAL MATCH (pm)-[:HAS_TOKEN]-(t)-[:CONTAINS_TOKEN]-(p:Product)
+            RETURN pm, a, auid, t`
       if (area === 'p2') {
-        result = tx.run(query2, { orderID: orderID })
+        result = tx.run(expression2)
       } else if (area === 'p3') {
-        result = tx.run(
-          'MATCH r=(pm)-[:CO_MAPPING_SUBORDER]-()-[:CONTAINS_O_SO]-(o:Order{orderID:$orderID}) ' +
-          'WITH o, collect(pm) AS pms ' +
-          'MATCH (o)-[:CO_MAPPING_ORDER]-(:Product)-[:CONTAINS_C_PM]-(pmid)-[:CONTAINS_C_ASSEMBLY]-(aid)-[:IS_C_UID]-(auid) ' +
-          'WHERE NOT pmid IN pms ' +
-          'WITH DISTINCT o, pmid, aid, auid OPTIONAL MATCH (pmid)-[:HAS_TOKEN]-(t:Token)-[:CONTAINS_TOKEN]-(:Product)-[:CO_MAPPING_ORDER]-(o) ' +
-          'RETURN pmid, aid, auid, t',
-          { orderID: orderID })
+        result = tx.run(expression3)
       }
       result.subscribe({
         onNext: record => {
@@ -280,6 +304,7 @@ export default {
     return true
   }
 }
+// export test
 export async function getAssembliesByOrder (orderID) {
   const items = []
   const query = tx => {

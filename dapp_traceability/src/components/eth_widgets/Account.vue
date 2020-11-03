@@ -40,20 +40,19 @@ export default {
   },
   methods: {
     async init () {
-      const accounts = await app.accounts()
-      this.accounts = accounts.slice(0, -2)
+      this.accounts = await app.accounts()
     },
     addressToMachineName (address) {
+      // const acc = this.accounts
       const mapTable = {
-        '0x9d56414F2218e4F33d474ad29A643DF9adB01F73': 'P1',
-        '0x76471f9b4A5cbbaC6CE3Cd504ad2aFB702094f80': 'P2',
-        '0x00E97eF3Ce4B250421C593C4Cd064E69Fb6eEAC2': 'P3',
-        '0xF5b013C3f7F7f6db154bF9a0E7a24F0e25be2548': 'MES'
+        [this.accounts[0].address]: 'P1',
+        [this.accounts[1].address]: 'P2',
+        [this.accounts[2].address]: 'P3'
       }
       return mapTable[address]
     },
     fromWeiToETH (balance) {
-      return app.convertFromWei(balance, 'ether')
+      return app.convertFromWei(balance, 'gether')
     }
   }
 }

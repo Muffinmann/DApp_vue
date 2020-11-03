@@ -3,10 +3,10 @@
 
     <b-input-group>
         <b-form-input v-model="tkID" placeholder="Enter Token ID"></b-form-input>
-        <b-button :disabled="!tkID" v-b-toggle.sidebar-1 @click="tokenProfile">Token Profile</b-button>
+        <b-button :disabled="!tkID" v-b-toggle.sidebar-1>Token Profile</b-button>
     </b-input-group>
 
-    <b-sidebar id="sidebar-1" title="Token Profile" shadow>
+    <b-sidebar id="sidebar-1" title="Token Profile" @shown="tokenProfile" shadow>
       <div class="px-3 py-2">
 
         <b-img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Ethereum-icon-purple.svg/330px-Ethereum-icon-purple.svg.png" fluid thumbnail></b-img>

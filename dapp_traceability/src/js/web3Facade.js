@@ -98,7 +98,7 @@ class Web3Facade {
     return await this.web3.eth.getPastLogs(opt)
   }
 
-  getPastEvents (eventName, options) {
+  async getPastEvents (eventName, options) {
     return await this.contract.getPastEvents(eventName, options)
     // return new Promise((resolve, reject) => {
     //   this.contract.getPastEvents(eventName, options, (err, events) => {
@@ -167,7 +167,7 @@ class Web3Facade {
       i => i.name === 'safeBatchTransferFrom' && i.type === 'function'
     )
     const data = this.web3.utils.hexToBytes(funcJsonIterface.signature)
-    const gas = 200000 * Math.ceil(values.length / 10) ** 2
+    const gas = 300000 * Math.ceil(values.length / 10) ** 2
     return new Promise((resolve, reject) => {
       this.contract.methods
         .safeBatchTransferFrom(from, to, ids, values, data)

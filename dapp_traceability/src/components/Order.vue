@@ -4,7 +4,10 @@
       <b-form-select v-model="selectOrder" :options="orders"></b-form-select>
       <b-list-group>
         <b-list-group-item><small> ProductID: {{ selectOrder ? `wh${selectOrder.slice(1)}` : null }}</small></b-list-group-item>
-        <b-list-group-item><small>ProductToken: {{productToken}}</small></b-list-group-item>
+        <b-list-group-item>
+          <small v-if="productToken">ProductToken: {{productToken }}</small>
+          <small v-else>ProductToken: <b-button @click="startProduction"><small>Produce</small></b-button></small>
+        </b-list-group-item>
       </b-list-group>
     </b-card>
   </b-col>
@@ -30,9 +33,14 @@ export default {
     //   .readTransaction(this.retrieveOrder)
     //   .then(() => session.close())
   },
+  computed: {
+    refreshTrigger () {
+      return this.$store.state.orderRefresh
+    }
+  },
   watch: {
     selectOrder: 'onSelected',
-    refreshTrigger: 'refresh'// TODO: use store to trigger refresh
+    refreshTrigger: 'refresh'
   },
   methods: {
     async refresh () {
@@ -46,6 +54,9 @@ export default {
     async retrieveOrder () {
       const orders = await neo.getAllOrders()
       this.orders = [...orders, ...this.orders]
+    },
+    startProduction () {
+      this.$store.commit('startProduction', new Date().toJSON())
     }
   }
 }

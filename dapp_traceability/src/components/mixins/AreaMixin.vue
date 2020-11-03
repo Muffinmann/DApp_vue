@@ -4,6 +4,7 @@ export default {
   methods: {
     multipleItemFilter (row, filter) {
       let filters
+      if (!filter) return true
       if (Array.isArray(filter)) {
         filters = filter.map(f => f.toLowerCase())
       } else {
@@ -31,6 +32,11 @@ export default {
     createTimeStamp () {
       const date = new Date().toJSON() // format: "2020-09-01T13:17:29.468Z"
       return date.slice(0, date.indexOf('.'))
+    },
+    delay (ms) {
+      return new Promise(resolve => {
+        setTimeout(resolve, ms)
+      })
     },
     constructPool (items) {
       let pool
