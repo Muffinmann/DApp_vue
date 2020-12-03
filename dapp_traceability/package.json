@@ -12,6 +12,7 @@
     "bootstrap-vue": "^2.15.0",
     "core-js": "^3.6.5",
     "echarts": "^4.9.0",
+    "echarts-stat": "^1.2.0",
     "neo4j-driver": "^4.0.2",
     "vue": "^2.6.11",
     "vue-router": "^3.2.0",

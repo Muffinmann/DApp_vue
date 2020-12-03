@@ -22,7 +22,7 @@
         </b-input-group>
       </b-col>
     </b-row>
-    <div ref="gas" style="width:1000px; height:600px"></div>
+    <div ref="gas" style="width:1400px; height:800px"></div>
   </b-col>
 </template>
 <script>
@@ -37,14 +37,14 @@ export default {
       selectFunc: true,
       myChart: null,
       option: null,
-      orderStartBlockList: '1463, 1493, 1502, 1513, 1526, 1535, 1544, 1554, 1567, 1576, 1590, 1601, 1610, 1619, 1633',
-      orderEndBlockList: '1491, 1500, 1511, 1524, 1533, 1542, 1552, 1565, 1574, 1588, 1599, 1608, 1617, 1631, 1641'
-      // 0.3s-start: 1754, 1799, 1812, 1825, 1843, 1855, 1866, 1877, 1890, 1899, 1910, 1921, 1930, 1939, 1953
-      // 0.3s-end: 1797, 1810, 1823, 1841, 1853, 1864, 1875, 1888, 1897, 1908, 1919, 1928, 1937, 1951, 1961
-      // 0.2s-start: 2006, 2025, 2033, 2041, 2050, 2062, 2073, 2084, 2092, 2098, 2106, 2114, 2120, 2126, 2134
-      // 0.2s-end: 2023, 2031, 2039, 2048, 2060, 2071, 2082, 2090, 2096, 2104, 2112, 2118, 2124, 2132, 2139
-      // 0.1s-start: 2146, 2179, 2192, 2205, 2216, 2226, 2237, 2244, 2257, 2266, 2280, 2287, 2293, 2299, 2308
-      // 0.1s-end: 2177, 2190, 2203, 2214, 2224, 2235, 2242, 2255, 2264, 2278, 2285, 2291, 2297, 2306, 2312
+      orderStartBlockList: '1387, 1429, 1438, 1449, 1462, 1471, 1480, 1489, 1498, 1505, 1515, 1524, 1531, 1538, 1548',
+      orderEndBlockList: '1427, 1436, 1447, 1460, 1469, 1478, 1487, 1496, 1503, 1513, 1522, 1529, 1536, 1546, 1553'
+      // 0.3s-start: 1250, 1272, 1280, 1288, 1299, 1307, 1315, 1323, 1331, 1337, 1346, 1354, 1360, 1366, 1374
+      // 0.3s-end: 1270, 1278, 1286, 1297, 1305, 1313, 1321, 1329, 1335, 1344, 1352, 1358, 1364, 1372, 1378
+      // 0.2s-start: 1119, 1138, 1146, 1154, 1163, 1171, 1179, 1187, 1195, 1201, 1209, 1217, 1223, 1229, 1237
+      // 0.2s-end: 1136, 1144, 1152, 1161, 1169, 1177, 1185, 1193, 1199, 1207, 1215, 1221, 1227, 1235, 1241
+      // 0.1s-start: 35, 48, 55, 62, 70, 77, 84, 91, 98, 103, 110, 117, 122, 127, 134
+      // 0.1s-end: 46, 53, 60, 68, 75, 82, 89, 96, 101, 108, 115, 120, 125, 132, 137
     }
   },
   mounted () {
@@ -97,8 +97,8 @@ export default {
           }
         },
         legend: {
-          show: false,
-          // data: ['create', 'craft', 'safeBatchTransferFrom', 'addController', 'total'],
+          show: true,
+          data: ['create', 'safeBatchTransferFrom', 'addController', 'craft', 'total'],
           // data: ['Area Total', 'create', 'craft', 'safeBatchTransferFrom', 'addController', 'blocks'],
           orient: 'horizontal' // 'horizontal','vertical'
           // right: 160,
@@ -214,104 +214,104 @@ export default {
             name: 'total',
             type: 'bar',
             // stack: 'gasUsage',
-            color: '#666600',
+            color: 'rgba(200,162,0,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: orderData.map(o => o.total)
           },
           {
-            name: 'create',
-            type: 'bar',
-            stack: 'gasUsageAll',
-            color: '#9bad47',
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            data: orderData.map(o => o.create)
-          },
-          {
             name: 'craft',
             type: 'bar',
             stack: 'gasUsageAll',
-            color: '#f7f11e',
+            color: 'rgba(173,173,173,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: orderData.map(o => o.craft)
           },
           {
-            name: 'safeBatchTransferFrom',
-            type: 'bar',
-            stack: 'gasUsageAll',
-            color: '#d9ce23',
-            xAxisIndex: 0,
-            yAxisIndex: 0,
-            data: orderData.map(o => o.safeBatchTransferFrom)
-          },
-          {
             name: 'addController',
             type: 'bar',
             stack: 'gasUsageAll',
-            color: '#dbff00',
+            color: 'rgba(255, 204, 0, 1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: orderData.map(o => o.addController)
           },
-          // line chart
+          {
+            name: 'safeBatchTransferFrom',
+            type: 'bar',
+            stack: 'gasUsageAll',
+            color: 'rgba(41,97,147,1)',
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            data: orderData.map(o => o.safeBatchTransferFrom)
+          },
           {
             name: 'create',
-            type: 'line',
-            // stack: 'gasUsageAll',
-            color: '#9bad47',
+            type: 'bar',
+            stack: 'gasUsageAll',
+            color: 'rgba(151,193,57,1)',
             xAxisIndex: 0,
-            yAxisIndex: 1,
-            lineStyle: {
-              // color: 'green',
-              width: 3
-              // type: 'dashed'
-            },
+            yAxisIndex: 0,
             data: orderData.map(o => o.create)
-          },
-          {
-            name: 'craft',
-            type: 'line',
-            // stack: 'gasUsageAll',
-            color: '#f7f11e',
-            xAxisIndex: 0,
-            yAxisIndex: 1,
-            lineStyle: {
-              // color: 'green',
-              width: 3
-              // type: 'dashed'
-            },
-            data: orderData.map(o => o.craft)
-          },
-          {
-            name: 'safeBatchTransferFrom',
-            type: 'line',
-            // stack: 'gasUsageAll',
-            color: '#d9ce23',
-            xAxisIndex: 0,
-            yAxisIndex: 1,
-            lineStyle: {
-              // color: 'green',
-              width: 3
-              // type: 'dashed'
-            },
-            data: orderData.map(o => o.safeBatchTransferFrom)
-          },
-          {
-            name: 'addController',
-            type: 'line',
-            // stack: 'gasUsageAll',
-            color: '#dbff00',
-            xAxisIndex: 0,
-            yAxisIndex: 1,
-            lineStyle: {
-              // color: 'green',
-              width: 3
-              // type: 'dashed'
-            },
-            data: orderData.map(o => o.addController)
           }
+          // line chart
+          // {
+          //   name: 'create(line)',
+          //   type: 'line',
+          //   // stack: 'gasUsageAll',
+          //   color: 'rgba(151,193,57,1)',
+          //   xAxisIndex: 0,
+          //   yAxisIndex: 1,
+          //   lineStyle: {
+          //     // color: 'green',
+          //     width: 3
+          //     // type: 'dashed'
+          //   },
+          //   data: orderData.map(o => o.create)
+          // },
+          // {
+          //   name: 'craft(line)',
+          //   type: 'line',
+          //   // stack: 'gasUsageAll',
+          //   color: 'rgba(173,173,173,1)',
+          //   xAxisIndex: 0,
+          //   yAxisIndex: 1,
+          //   lineStyle: {
+          //     // color: 'green',
+          //     width: 3
+          //     // type: 'dashed'
+          //   },
+          //   data: orderData.map(o => o.craft)
+          // },
+          // {
+          //   name: 'safeBatchTransferFrom(line)',
+          //   type: 'line',
+          //   // stack: 'gasUsageAll',
+          //   color: 'rgba(41,97,147,1)',
+          //   xAxisIndex: 0,
+          //   yAxisIndex: 1,
+          //   lineStyle: {
+          //     // color: 'green',
+          //     width: 3
+          //     // type: 'dashed'
+          //   },
+          //   data: orderData.map(o => o.safeBatchTransferFrom)
+          // },
+          // {
+          //   name: 'addController(line)',
+          //   type: 'line',
+          //   // stack: 'gasUsageAll',
+          //   color: 'rgba(255, 204, 0, 1)',
+          //   xAxisIndex: 0,
+          //   yAxisIndex: 1,
+          //   lineStyle: {
+          //     // color: 'green',
+          //     width: 3
+          //     // type: 'dashed'
+          //   },
+          //   data: orderData.map(o => o.addController)
+          // }
           // {
           //   name: 'blocks',
           //   type: 'line',

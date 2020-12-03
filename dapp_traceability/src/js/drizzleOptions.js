@@ -1,4 +1,4 @@
-import APTSC from './contracts/APTSC.json'
+import ATM from './contracts/ATM.json'
 const options = {
   web3: {
     block: false,
@@ -7,9 +7,9 @@ const options = {
       url: 'ws://127.0.0.1:8545'
     }
   },
-  contracts: [APTSC],
+  contracts: [ATM],
   events: {
-    APTSC: ['TransferSingle', 'TransferBatch', 'controllerUpdate', 'serialNumber', 'status', 'URI', 'ApprovalForAll']
+    ATM: ['TransferSingle', 'TransferBatch', 'controllerUpdate', 'serialNumber', 'status', 'URI', 'ApprovalForAll']
   },
   polls: {
     accounts: 15000

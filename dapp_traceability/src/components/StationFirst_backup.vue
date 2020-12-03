@@ -323,13 +323,13 @@ export default {
     */
     createToken (qty, serialNumber) {
       this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.create
         .cacheSend(qty, 'uri/path', serialNumber, this.actor, { gas: 100000, from: this.actor })
     },
     addController (id, newController) {
       this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.addController
         .cacheSend(id, newController, { gas: 100000, from: this.actor })
     },
@@ -337,13 +337,13 @@ export default {
       const state = this.drizzleInstance.store.getState()
       // console.log('STATE: ', state)
       const dataKey = this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.isApprovedForAll
         .cacheCall(owner, operator)
       // console.log('DATA KEY: ', dataKey)
-      // console.log('CONTRACT INSTANCE: ', this.contractInstances.APTSC.isApprovedForAll[dataKey].value)
-      // const value = this.$store.state.contracts.instances.APTSC.isApprovedForAll[dataKey]
-      const value = state.contracts.APTSC.isApprovedForAll[dataKey].value
+      // console.log('CONTRACT INSTANCE: ', this.contractInstances.ATM.isApprovedForAll[dataKey].value)
+      // const value = this.$store.state.contracts.instances.ATM.isApprovedForAll[dataKey]
+      const value = state.contracts.ATM.isApprovedForAll[dataKey].value
       // console.log('VALUE: ', value)
       // const result = JSON.parse(JSON.stringify(value))
       // console.log('RESULT: ', result)
@@ -351,7 +351,7 @@ export default {
     },
     setApproval (operator) {
       this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.setApprovalForAll
         .cacheSend(operator, true)
     },
@@ -363,7 +363,7 @@ export default {
       const dataBytes = web3.utils.hexToBytes(data)
       try { // p2: 2million gas, p3:10 million gas
         this.drizzleInstance
-          .contracts.APTSC
+          .contracts.ATM
           .methods.safeBatchTransferFrom
           .cacheSend(from, to, ids, values, dataBytes, { gas: gas, from: this.actor })
       } catch (err) {

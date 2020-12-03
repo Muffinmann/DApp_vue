@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 import "./ERC1155.sol";
 
-contract APTSC is ERC1155 {
+contract ATM is ERC1155 {
     event craftedToken(uint256[] _inputIds, uint256[] _inputQuantities, uint256 indexed _outputId, uint256 _outputQuantity, address indexed _actor);
     event serialNumber(string _serialNumber, uint256 indexed _id, address indexed _actor);
     event status(string _status, uint256 indexed _id, address indexed _actor);

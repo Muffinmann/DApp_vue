@@ -5,9 +5,11 @@ import options from '@/js/ethOptions.js'
 class Web3Facade {
   constructor ({ networkID, contract, wsUrl }) {
     const contractAddress = contract.networks[networkID].address
+    // console.log('COntract Address: ', contractAddress)
     const web3Provider = new Web3.providers.WebsocketProvider(wsUrl)
     this.web3 = new Web3(web3Provider)
     this.contract = new this.web3.eth.Contract(contract.abi, contractAddress)
+    console.log('THIS CONTRACT: ', this.contract)
     this.subscriptions = {}
   }
 
@@ -135,7 +137,7 @@ class Web3Facade {
   }
 
   craft ({ inIds, inValues, outQty, uri, actor, serialNumber }) {
-    const gas = 500000 * Math.ceil(inValues.length / 10) ** 2
+    const gas = 55000 + inValues.length * 17000
     return new Promise((resolve, reject) => {
       this.contract.methods
         .craft(inIds, inValues, outQty, uri, actor, serialNumber)
@@ -167,7 +169,7 @@ class Web3Facade {
       i => i.name === 'safeBatchTransferFrom' && i.type === 'function'
     )
     const data = this.web3.utils.hexToBytes(funcJsonIterface.signature)
-    const gas = 300000 * Math.ceil(values.length / 10) ** 2
+    const gas = 30000 + values.length * 30000
     return new Promise((resolve, reject) => {
       this.contract.methods
         .safeBatchTransferFrom(from, to, ids, values, data)

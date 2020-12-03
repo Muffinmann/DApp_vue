@@ -18,14 +18,17 @@
       <gasChart/>
     </b-row>
     <b-row>
+      <gasAllOrders/>
+    </b-row>
+    <!-- <b-row>
       <gasChartByArea/>
     </b-row>
     <b-row>
-      <gasAllOrders/>
+      <craftBoxPlot/>
     </b-row>
     <b-row>
       <gasBlocks/>
-    </b-row>
+    </b-row> -->
 
   </b-container>
 </template>
@@ -35,9 +38,10 @@ import Account from '@/components/eth_widgets/Account.vue'
 import BcInfo from '@/components/eth_widgets/BlockchainInfo.vue'
 import TkProfile from '@/components/eth_widgets/TokenProfile.vue'
 import gasChart from '@/components/charts/gasUsage.vue'
-import gasChartByArea from '@/components/charts/gasUsageByArea.vue'
+// import gasChartByArea from '@/components/charts/gasUsageByArea.vue'
 import gasAllOrders from '@/components/charts/gasAllOrders.vue'
-import gasBlocks from '@/components/charts/gasBlocks.vue'
+// import gasBlocks from '@/components/charts/gasBlocks.vue'
+// import craftBoxPlot from '@/components/charts/craftBoxPlot.vue'
 import Order from '@/components/Order.vue'
 // import Alert from '@/components/Alert.vue'
 import Production from '@/components/Production.vue'
@@ -50,9 +54,10 @@ export default {
     BcInfo,
     TkProfile,
     gasChart,
-    gasChartByArea,
+    // gasChartByArea,
     gasAllOrders,
-    gasBlocks,
+    // gasBlocks,
+    // craftBoxPlot,
     Production
   }
 }

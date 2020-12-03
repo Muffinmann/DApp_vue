@@ -246,7 +246,7 @@ export default {
     },
     addController (id, newController) {
       this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.addController
         .cacheSend(id, newController, { gas: 100000, from: this.actor })
     },
@@ -258,7 +258,7 @@ export default {
       const dataBytes = web3.utils.hexToBytes(data)
       try { // p2: 2million gas, p3:10 million gas
         this.drizzleInstance
-          .contracts.APTSC
+          .contracts.ATM
           .methods.safeBatchTransferFrom
           .cacheSend(from, to, ids, values, dataBytes, { gas: gas, from: this.actor })
       } catch (err) {
@@ -268,7 +268,7 @@ export default {
     craftToken (inIds, inQtys, outQtys, serialNumber, gas) {
       // craft(uint256[] calldata _inputIds, uint256[] calldata _inputQuantities, uint256 _outputInitialSupply, string calldata _uri, address _actor, string calldata _serialNumber)
       this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.craft
         .cacheSend(inIds, inQtys, outQtys, 'uri/path', this.actor, serialNumber, { gas: gas, from: this.actor })
     },

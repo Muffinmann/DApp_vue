@@ -23,10 +23,18 @@ export default {
       const funName = app.decodeFuncSig(funSig)
       const txnReceipt = await app.getTxnReceipt(txn.hash)
       // console.log('txn: ', txnReceipt)
+      let inputLength = 1
+      if (funName === 'craft' || funName === 'safeBatchTransferFrom') {
+        const [TransferBatchLog] = txnReceipt.logs
+        const transferBatch = app.decodeEventLog('TransferBatch', TransferBatchLog)
+        inputLength = transferBatch._ids.length
+        if (inputLength === 19) console.log('********', funName, transferBatch, txnReceipt)
+      }
       return {
         funName: funName,
         from: txnReceipt.from.toLowerCase(),
-        gas: txnReceipt.gasUsed
+        gas: txnReceipt.gasUsed,
+        inputLength: inputLength
       }
     },
     async reduceBlock (b) {
@@ -52,8 +60,10 @@ export default {
         const create = txns.filter(tx => tx.funName === 'create').reduce((acc, crr) => acc + crr.gas, 0)
 
         const craft = txns.filter(tx => tx.funName === 'craft').reduce((acc, crr) => acc + crr.gas, 0)
+        const craftGasByLength = txns.filter(tx => tx.funName === 'craft').map(txn => [txn.inputLength, txn.gas])
 
         const safeBatchTransferFrom = txns.filter(tx => tx.funName === 'safeBatchTransferFrom').reduce((acc, crr) => acc + crr.gas, 0)
+        const transferGasByLength = txns.filter(tx => tx.funName === 'safeBatchTransferFrom').map(txn => [txn.inputLength, txn.gas])
 
         const addController = txns.filter(tx => tx.funName === 'addController').reduce((acc, crr) => acc + crr.gas, 0)
 
@@ -90,7 +100,9 @@ export default {
           total: total,
           create: create,
           craft: craft,
+          craftGasByLength: craftGasByLength,
           safeBatchTransferFrom: safeBatchTransferFrom,
+          transferGasByLength: transferGasByLength,
           addController: addController,
           blockCount: blockCount,
           p1total: p1total,

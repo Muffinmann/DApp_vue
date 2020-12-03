@@ -150,7 +150,7 @@ export default {
     txHash () {
       return () => {
         const state = this.drizzleInstance.store.getState()
-        return Array.from(new Set(state.contracts.APTSC.events.map(e => e.transactionHash)))
+        return Array.from(new Set(state.contracts.ATM.events.map(e => e.transactionHash)))
       }
     }
   },
@@ -189,7 +189,7 @@ export default {
         })
       } else {
         const state = this.drizzleInstance.store.getState()
-        const events = state.contracts.APTSC.events
+        const events = state.contracts.ATM.events
         const txHash = Array.from(new Set(events.map(event => event.transactionHash)))
         txHash.forEach(h => this.drizzleInstance.web3.eth.getTransactionReceipt(h, console.log))
         console.group('TX Events')
@@ -309,13 +309,13 @@ export default {
     */
     createToken (qty, serialNumber) {
       this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.create
         .cacheSend(qty, 'uri/path', serialNumber, this.actor, { gas: 100000, from: this.actor })
     },
     addController (id, newController) {
       this.drizzleInstance
-        .contracts.APTSC
+        .contracts.ATM
         .methods.addController
         .cacheSend(id, newController, { gas: 100000, from: this.actor })
     },
@@ -326,7 +326,7 @@ export default {
       const dataBytes = web3.utils.hexToBytes(data)
       try { // p2: 2million gas, p3:10 million gas
         this.drizzleInstance
-          .contracts.APTSC
+          .contracts.ATM
           .methods.safeBatchTransferFrom
           .cacheSend(from, to, ids, values, dataBytes, { gas: gas, from: this.actor })
       } catch (err) {

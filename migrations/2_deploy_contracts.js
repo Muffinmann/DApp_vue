@@ -1,5 +1,5 @@
-const APTSC = artifacts.require("APTSC");
+const ATM = artifacts.require("ATM");
 
 module.exports = function(deployer) {
-  deployer.deploy(APTSC);
+  deployer.deploy(ATM);
 };

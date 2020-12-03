@@ -78,7 +78,7 @@ export default {
   },
   data () {
     return {
-      currentOrder: 'o_111',
+      currentOrder: '',
       alertMsg1: '',
       alertMsg2: '',
       alertMsg3: '',
@@ -126,7 +126,7 @@ export default {
       p1IsBusy: false,
       p2IsBusy: false,
       p3IsBusy: false,
-      interval: 100,
+      interval: 500,
       startBlocks: [],
       endBlocks: []
       // receipts: [],
@@ -184,6 +184,8 @@ export default {
       const [, p2] = await app.accounts()
       this.p2Actor = p2.address
       this.p2Items = await neo.getPMsByOrderAndArea(this.currentOrder, 'p2')
+      const p2length = this.p2Items.map(i => i.children.length)
+      console.log('P2 item children length range: ', p2length, 'Min: ', Math.min(...p2length), '---', 'Max: ', Math.max(...p2length))
       this.p2IsBusy = false
     },
     async initP3 () {
@@ -192,6 +194,8 @@ export default {
       this.p3Actor = p3.address
       this.logActor = log.address
       this.p3Items = await neo.getPMsByOrderAndArea(this.currentOrder, 'p3')
+      const p3length = this.p3Items.map(i => i.children.length)
+      console.log('P3 item children length range: ', p3length, 'Min: ', Math.min(...p3length), '---', 'Max: ', Math.max(...p3length))
       this.p3IsBusy = false
     },
     async createToken () {
@@ -239,129 +243,6 @@ export default {
       // console.log('receiptCollector: ', receiptCollector)
       return updateQueue
     },
-    /* async createToken () {
-      const creationPool = this.constructPool(this.p1Items)
-      const receiptCollector = []
-      // const updateDetector = []
-      const tokenObjects = []
-      this.p1Step = 0
-      this.p1Max = creationPool.length
-      // console.log('p1Max: ', this.p1Max)
-      for (const item of creationPool) {
-        const createTokenOpt = {
-          qty: item.batchsize,
-          uri: 'URI',
-          serialNumber: item.assemblyUID,
-          actor: this.p1Actor
-        }
-        const receipt = app.create(createTokenOpt)
-        receiptCollector.push(receipt)
-        await this.delay(this.interval)
-      }
-      const receipts = await Promise.all(receiptCollector)
-      receipts.forEach(r => {
-        this.p1Step += 1
-        const ts = r.events.TransferSingle.returnValues
-        const sn = r.events.serialNumber.returnValues
-        const time = this.createTimeStamp()
-        const tokenObj = {
-          serialNumber: sn._serialNumber,
-          tokenID: sn._id,
-          tokenSupply: +ts._value,
-          timeStamp: time
-        }
-        tokenObjects.push(tokenObj)
-      })
-      await neo.updateAssemblyTokens(tokenObjects)
-      this.p1Items = await neo.getAssembliesByOrder(this.currentOrder)
-      this.showAlert('Creation Complete!', 1)
-      // const updateInfo = new Promise(resolve => {
-      //     receipt.then(async (r) => {
-      //       console.log('Create Txn Receipt: ', r)
-      //       const ts = r.events.TransferSingle.returnValues
-      //       const sn = r.events.serialNumber.returnValues
-      //       const time = this.createTimeStamp()
-      //       const tokenObj = {
-      //         serialNumber: sn._serialNumber,
-      //         tokenID: sn._id,
-      //         tokenSupply: +ts._value,
-      //         timeStamp: time
-      //       }
-      //       await neo.updateAssemblyTokens(tokenObj)
-      //       const updatedItems = await neo.getAssembliesByOrder(this.currentOrder)
-      //       resolve()
-      //       this.p1Items = updatedItems
-      //       this.p1Step += 1
-      //       if (this.p1Step === this.p1Max) {
-      //         this.showAlert('Creation Complete!', 1)
-      //       }
-      //     })
-      //   })
-      //   updateDetector.push(updateInfo)
-      // console.log('uptade queue', updateDetector.length)
-      // return
-      // const loader = creationPool.values()
-      // // const interval = 500 // production time interval
-      // const run = () => {
-      //   return new Promise(resolve => {
-      //     console.log('Start creating at:', new Date().toJSON())
-      //     const result = loader.next()
-      //     if (result.done) {
-      //       // resolve('resolve run')
-      //       return
-      //     }
-      //     const currentItem = result.value
-      //     // the create token function in API takes an object with properties as follows:
-      //     const createTokenOpt = {
-      //       qty: currentItem.batchsize,
-      //       uri: 'URI',
-      //       serialNumber: currentItem.assemblyUID,
-      //       actor: this.p1Actor
-      //     }
-      //     const receipt = app.create(createTokenOpt)
-      //     receiptCollector.push(receipt)
-      //     const updateInfo = new Promise(resolve => {
-      //       receipt.then(async (r) => {
-      //         console.log('Create Txn Receipt: ', r)
-      //         const ts = r.events.TransferSingle.returnValues
-      //         const sn = r.events.serialNumber.returnValues
-      //         const time = this.createTimeStamp()
-      //         const tokenObj = {
-      //           serialNumber: sn._serialNumber,
-      //           tokenID: sn._id,
-      //           tokenSupply: +ts._value,
-      //           timeStamp: time
-      //         }
-      //         await neo.updateAssemblyTokens(tokenObj)
-      //         const update = await neo.getAssembliesByOrder(this.currentOrder)
-      //         resolve()
-      //         this.p1Items = update
-      //         this.p1Step += 1
-      //         if (this.p1Step === this.p1Max) {
-      //           this.showAlert('Creation Complete!', 1)
-      //         }
-      //         // updateNeo
-      //         //   .then(() => neo.getAssembliesByOrder(this.currentOrder))
-      //         //   .then(result => {
-      //         //     this.p1Items = result
-      //         //     this.p1Step += 1
-      //         //     if (this.p1Step === this.p1Max) {
-      //         //       this.showAlert('Creation Complete!', 1)
-      //         //     }
-      //         //   })
-      //       })
-      //     })
-      //     updateDetector.push(updateInfo)
-      //     // run()
-      //     setTimeout(resolve(run()), this.interval)
-      //   })
-      // }
-      // run()
-      // console.log('receiptCollector', receiptCollector)
-      // console.log('updateDetector', updateDetector)
-      // // return [...receiptCollector, ...updateDetector]
-      // return updateDetector
-    }, */
     async craftTokenP2 () {
       const craftPool = this.constructPool(this.p2Items)
       console.log('p2 craft pool: ', craftPool)
@@ -410,50 +291,6 @@ export default {
         await this.delay(this.interval)
       }
       return updateQueue
-    /* const run = () => {
-        return new Promise(resolve => {
-          this.showAlert('Start Crafting!', 2)
-          const result = loader.next()
-          if (result.done) return
-          const currentItem = result.value
-          const inputUIDs = currentItem.children.map(child => child.assemblyUID)
-          const inputTokens = this.p1Items.filter(i => this.multipleItemFilter(i, inputUIDs)).map(i => i.tokenID)
-          const craftTokenOpt = {
-            inIds: inputTokens,
-            inValues: Array(inputTokens.length).fill(1),
-            outQty: 1,
-            uri: 'URI',
-            serialNumber: currentItem.pmUID,
-            actor: this.p2Actor
-          }
-          const receipt = app.craft(craftTokenOpt)
-          receiptCollector.push(receipt)
-          receipt.then(r => {
-            console.log('craft receipt: ', r)
-            const sn = r.events.serialNumber.returnValues
-            const time = this.createTimeStamp()
-            const tokenObj = {
-              serialNumber: sn._serialNumber,
-              tokenID: sn._id,
-              timeStamp: time,
-              children: inputTokens
-            }
-            neo.updatePmTokensOfOrder(this.currentOrder, [tokenObj], 'p2')
-              .then(() => neo.getPMsByOrderAndArea(this.currentOrder, 'p2'))
-              .then(result => {
-                this.p2Items = result
-                this.p2Step += 1
-                if (this.p2Step === this.p2Max) {
-                  this.showAlert('Craft Complete!', 2)
-                  resolve()
-                }
-              })
-          })
-          setTimeout(resolve(run()), this.interval)
-        })
-      }
-      run()
-      return receiptCollector */
     },
     async craftTokenP3 () {
       const craftPool = this.constructPool(this.p3Items)
@@ -501,54 +338,6 @@ export default {
         await this.delay(this.interval)
       }
       return updateQueue
-      /* const run = () => {
-        return new Promise(resolve => {
-          const result = loader.next()
-          if (result.done) return
-          const currentItem = result.value
-          const inputUIDs = currentItem.children.map(child => child.assemblyUID)
-          const inputTokens = this.p1Items.filter(i => this.multipleItemFilter(i, inputUIDs)).map(i => i.tokenID)
-          const craftTokenOpt = {
-            inIds: inputTokens,
-            inValues: Array(inputTokens.length).fill(1),
-            outQty: 1,
-            uri: 'URI',
-            serialNumber: currentItem.pmID,
-            actor: this.p3Actor
-          }
-          const receipt = app.craft(craftTokenOpt)
-          receiptCollector.push(receipt)
-          const updateInfo = new Promise(resolve => {
-            receipt.then(r => {
-              console.log('craft receipt: ', r)
-              const sn = r.events.serialNumber.returnValues
-              const time = this.createTimeStamp()
-              const tokenObj = {
-                serialNumber: sn._serialNumber,
-                tokenID: sn._id,
-                timeStamp: time,
-                children: inputTokens
-              }
-              const updateNeo = neo.updatePmTokensOfOrder(this.currentOrder, [tokenObj], 'p3')
-              resolve(updateNeo)
-              updateNeo.then(() => neo.getPMsByOrderAndArea(this.currentOrder, 'p3'))
-                .then(result => {
-                  this.p3Items = result
-                  this.p3Step += 1
-                  if (this.p3Step === this.p3Max) {
-                    this.showAlert('Craft Complete!', 3)
-                    resolve()
-                  }
-                })
-            })
-          })
-          updateDetector.push(updateInfo)
-          setTimeout(resolve(run()), this.interval)
-        })
-      }
-      run()
-      console.log('update detector: ', updateDetector)
-      return receiptCollector */
     },
     async finalMount () {
       const productID = `wh${this.currentOrder.slice(1)}`
@@ -645,44 +434,6 @@ export default {
         }
         return updateQueue
       }
-      // const receiptCollector = []
-      /* const run = (gen, to, callback) => {
-        return new Promise(resolve => {
-          const result = gen.next()
-          if (result.done) {
-            if (!addControllerP2.length && to === this.p2Actor) {
-              callback()
-            }
-            if (!addControllerP3.length && to === this.p3Actor) {
-              callback()
-            }
-            return
-          }
-          const approve = {
-            id: result.value.tokenID,
-            newController: to,
-            actor: this.p1Actor
-          }
-          const receipt = app.addController(approve)
-          receiptCollector.push(receipt)
-          receipt.then(r => {
-            this.showAlert(`approve new controller for ${result.value.tokenID}`, 1)
-            this.p1Step += 1
-            if (this.p1Step === addControllerP2.length && to === this.p2Actor) {
-              this.showAlert('Control over tokens for P2 Approved!', 1)
-              const res = callback()
-              resolve(res)
-            }
-            if (this.p1Step === this.p1Max) {
-              this.showAlert('Control over tokens for P3 Approved!', 1)
-              const res = callback()
-              resolve(res)
-            }
-          })
-          // run(gen, to)
-          setTimeout(resolve(run(gen, to, callback)), 500)
-        })
-      } */
       const waitCtrlToP2 = await runAddCtrl(addControllerP2, this.p2Actor)
       const waitCtrlToP3 = await runAddCtrl(addControllerP3, this.p3Actor)
 
@@ -745,38 +496,6 @@ export default {
             console.error('p1-p3 transfer failed, ', err)
           })
       })
-      // const transferToP3S1 = new Promise(resolve => {
-      //   this.showAlert('transfering to P3...', 1)
-      //   console.log('preparing to P3')
-      //   const receiptP3 = app.transferBatch(toP3OptS1)
-      //   // receiptCollector.push(receiptP3)
-      //   receiptP3
-      //     .then(r => {
-      //       this.showAlert('Token transfer to P3 finished!', 1)
-      //       console.log('transfer Batch to P3', r)
-      //       resolve()
-      //     })
-      //     .catch(err => {
-      //       console.error('p1-p3 transfer failed, ', err)
-      //     })
-      // })
-      // // await this.delay(15000)
-      // const transferToP3S2 = new Promise(resolve => {
-      //   this.showAlert('transfering to P3...', 1)
-      //   console.log('preparing to P3')
-      //   const receiptP3 = app.transferBatch(toP3OptS2)
-      //   // receiptCollector.push(receiptP3)
-      //   receiptP3
-      //     .then(r => {
-      //       this.showAlert('Token transfer to P3 finished!', 1)
-      //       console.log('transfer Batch to P3', r)
-      //       resolve()
-      //     })
-      //     .catch(err => {
-      //       console.error('p1-p3 transfer failed, ', err)
-      //     })
-      // })
-      // console.log(transferToP2, transferToP3S2, transferToP3S1, runAddCtrl)
       const composeP2 = new Promise(resolve => {
         Promise.all(waitCtrlToP2).then(() => {
           resolve(transferToP2())
@@ -816,29 +535,6 @@ export default {
         updateQueue.push(update)
         await this.delay(this.interval)
       }
-      /* const run = (gen, callback) => {
-        return new Promise(resolve => {
-          const result = gen.next()
-          this.showAlert(`transferring token ${result.value}`, 2)
-          if (result.done) return
-          const approve = {
-            id: result.value,
-            newController: this.p3Actor,
-            actor: this.p2Actor
-          }
-          const receipt = app.addController(approve)
-          receiptCollector.push(receipt)
-          receipt.then(r => {
-            this.p2Step += 1
-            if (this.p2Step === this.p2Max) {
-              this.showAlert('Control of tokens Approved!', 2)
-              const res = callback()
-              resolve(res)
-            }
-          })
-          setTimeout(resolve(run(gen, callback)), 500)
-        })
-      } */
       const toP3Opt = {
         from: this.p2Actor,
         to: this.p3Actor,
@@ -869,7 +565,7 @@ export default {
     async runOrderProduction () {
       let orders = await neo.getAllOrders()
       orders = orders.map(o => o.order)
-      orders = ['o_111']
+      // orders = ['o_111']
       console.log('orders: ', orders)
       for (const o of orders) {
         this.currentOrder = o

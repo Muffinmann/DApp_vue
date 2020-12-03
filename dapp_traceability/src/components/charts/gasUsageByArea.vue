@@ -221,7 +221,7 @@ export default {
             name: 'Area Total',
             type: 'bar',
             // stack: 'gasUsage',
-            color: '#666600',
+            color: 'rgba(200,162,0,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             // label: {
@@ -241,7 +241,7 @@ export default {
             name: 'create',
             type: 'bar',
             // stack: 'gasUsage',
-            color: '#9bad47',
+            color: 'rgba(151,193,57,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: [
@@ -254,7 +254,7 @@ export default {
             name: 'craft',
             type: 'bar',
             // stack: 'gasUsage',
-            color: '#f7f11e',
+            color: 'rgba(173,173,173,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: [
@@ -267,7 +267,7 @@ export default {
             name: 'safeBatchTransferFrom',
             type: 'bar',
             // stack: 'gasUsage',
-            color: '#d9ce23',
+            color: 'rgba(41,97,147,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: [
@@ -280,7 +280,7 @@ export default {
             name: 'addController',
             type: 'bar',
             // stack: 'gasUsage',
-            color: '#dbff00',
+            color: 'rgba(255, 204, 0, 1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: [
@@ -294,7 +294,7 @@ export default {
             name: 'Area Total',
             type: 'bar',
             // stack: 'gasUsage',
-            color: '#666600',
+            color: 'rgba(200,162,0,1)',
             xAxisIndex: 1,
             yAxisIndex: 1,
             data: [
@@ -307,7 +307,7 @@ export default {
             name: 'create',
             type: 'bar',
             // stack: 'gasUsage2',
-            color: '#9bad47',
+            color: 'rgba(151,193,57,1)',
             xAxisIndex: 1,
             yAxisIndex: 1,
             data: [
@@ -320,7 +320,7 @@ export default {
             name: 'craft',
             type: 'bar',
             // stack: 'gasUsage2',
-            color: '#f7f11e',
+            color: 'rgba(173,173,173,1)',
             xAxisIndex: 1,
             yAxisIndex: 1,
             data: [
@@ -333,7 +333,7 @@ export default {
             name: 'safeBatchTransferFrom',
             type: 'bar',
             // stack: 'gasUsage2',
-            color: '#d9ce23',
+            color: 'rgba(41,97,147,1)',
             xAxisIndex: 1,
             yAxisIndex: 1,
             data: [
@@ -346,7 +346,7 @@ export default {
             name: 'addController',
             type: 'bar',
             // stack: 'gasUsage2',
-            color: '#dbff00',
+            color: 'rgba(255, 204, 0, 1)',
             xAxisIndex: 1,
             yAxisIndex: 1,
             data: [

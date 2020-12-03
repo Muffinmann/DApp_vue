@@ -61,7 +61,7 @@ export default {
     async getBlocks (fromNumber, toNumber) {
       const blockNumbers = Array.from({ length: toNumber - fromNumber + 1 }, (v, k) => k + fromNumber)
       const blocks = blockNumbers.map(n => app.getBlock(n))
-      // console.log('blocks: ', await Promise.all(blocks))
+      console.log('blocks: ', await Promise.all(blocks))
       return await Promise.all(blocks)
     },
     async reduceTxn (txn) {
@@ -88,9 +88,9 @@ export default {
     async initChart () {
       // console.log('blockNumber: ', this.latestBlockNumber)
       // const f = this.latestBlockNumber > this.rangeValue * 2 + 1 ? this.latestBlockNumber - this.rangeValue * 2 + 1 : this.latestBlockNumber
-      // const blocks = await this.getBlocks(f, this.latestBlockNumber) // Array of block objects
+      const blocks = await this.getBlocks(1386, 1555) // Array of block objects
       // console.log('blocks: ', blocks)
-      const blocks = await this.getBlocks(this.latestBlockNumber - this.rangeValue, this.latestBlockNumber)
+      // const blocks = await this.getBlocks(this.latestBlockNumber - this.rangeValue, this.latestBlockNumber)
       const blocksReduced = await Promise.all(blocks.map(b => this.reduceBlock(b)))
       // const drawBlocks = blocksReduced.slice(this.rangeValue) // the first 'rangeValue'(default=10) blocks are only used for calculating avg. gas usage
       const drawBlocks = blocksReduced
@@ -235,7 +235,7 @@ export default {
             name: 'create',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#9bad47',
+            color: 'rgba(151,193,57,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'create' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))
@@ -244,7 +244,7 @@ export default {
             name: 'craft',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#f7f11e',
+            color: 'rgba(173,173,173,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'craft' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))
@@ -253,7 +253,7 @@ export default {
             name: 'safeBatchTransferFrom',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#d9ce23',
+            color: 'rgba(41,97,147,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'safeBatchTransferFrom' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))
@@ -262,7 +262,7 @@ export default {
             name: 'addController',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#dbff00',
+            color: 'rgba(255, 204, 0, 1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'addController' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))

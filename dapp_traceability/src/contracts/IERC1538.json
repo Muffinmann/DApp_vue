@@ -714,7 +714,7 @@
   },
   "networks": {},
   "schemaVersion": "3.2.0",
-  "updatedAt": "2020-09-17T08:21:59.067Z",
+  "updatedAt": "2020-11-26T09:07:18.686Z",
   "devdoc": {
     "details": "Required interface  Note: the ERC-165 identifier for this interface is 0x61455567",
     "methods": {

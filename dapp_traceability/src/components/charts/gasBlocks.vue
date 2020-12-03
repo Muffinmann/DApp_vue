@@ -19,8 +19,8 @@ export default {
   mixins: [chartmixin],
   data () {
     return {
-      fromBlock: 1056,
-      toBlock: 1319,
+      fromBlock: 35,
+      toBlock: 137,
       // 0.5s-start: 428, 458, 467, 478, 491, 500, 509, 518, 527, 534, 544, 553, 560, 567, 577
       // 0.5s-end: 456, 465, 476, 489, 498, 507, 516, 525, 532, 542, 551, 558, 565, 575, 582
       // block count 15s: [29, 8, 10, 12, 8, 8, 8, 8, 6, 9, 8, 6, 6, 9, 6]
@@ -237,7 +237,7 @@ export default {
             name: 'create',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#9bad47',
+            color: 'rgba(151,193,57,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'create' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))
@@ -246,7 +246,7 @@ export default {
             name: 'craft',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#f7f11e',
+            color: 'rgba(173,173,173,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'craft' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))
@@ -255,7 +255,7 @@ export default {
             name: 'safeBatchTransferFrom',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#d9ce23',
+            color: 'rgba(41,97,147,1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'safeBatchTransferFrom' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))
@@ -264,7 +264,7 @@ export default {
             name: 'addController',
             type: 'bar',
             stack: 'gasUsage',
-            color: '#dbff00',
+            color: 'rgba(255, 204, 0, 1)',
             xAxisIndex: 0,
             yAxisIndex: 0,
             data: drawBlocks.map(b => b.transactions.map(t => t.funName === 'addController' ? t.gas : 0).reduce((acc, crr) => acc + crr, 0))

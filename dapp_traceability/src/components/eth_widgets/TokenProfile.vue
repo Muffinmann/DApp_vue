@@ -56,11 +56,12 @@ export default {
         toBlock: 'latest'
       }
       this.loading = true
-
+      console.log('get batch transfer: ', await app.getPastEvents('TransferBatch', options))
       const sn = await app.getPastEvents('serialNumber', options)
       this.fields.SerialNumber = sn.map(e => e.returnValues._serialNumber)
 
       const st = await app.getPastEvents('status', options)
+      console.log('### status: ', st)
       this.fields.Status = st.map(e => e.returnValues._status)
 
       const uri = await app.getPastEvents('URI', options)
@@ -68,8 +69,11 @@ export default {
 
       const ctrl = await app.getPastEvents('controllerUpdate', options)
       const ctrlNoDuplicate = Array.from(new Set(ctrl.map(el => el.returnValues._updatedAddress)))
+
       const bl = await Promise.all(ctrlNoDuplicate.map(c => app.balanceOfTokenByOwner(this.tkID, c)))
       console.log('bl: ', bl)
+      const a = '0x39939ad04f579c6ECaae83dD59ACa71018E2a2Bc'
+      console.log('Balance: ', await app.balanceOfTokenByOwner(9, a))
       this.fields.Controller = ctrlNoDuplicate
       this.fields.TokenBalance = bl
 
